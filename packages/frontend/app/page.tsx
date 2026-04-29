@@ -172,7 +172,9 @@ export default function Dashboard() {
     currentBookingNumber: 1,
     managerName: '',
     managerTitle: 'Property Manager',
-    adminPassword: ''
+    adminPassword: '',
+    wifiId: '',
+    wifiPassword: ''
   });
 
   const getAvailableCategories = () => {
@@ -316,9 +318,11 @@ export default function Dashboard() {
           currentInvoiceNumber: currentHotel.current_invoice_number || 1001,
           bookingPrefix: currentHotel.booking_prefix || 'BKG-',
           currentBookingNumber: currentHotel.current_booking_number || 1001,
-          managerName: currentHotel.manager_name || 'Deepak Kumar',
-          managerTitle: currentHotel.manager_title || 'Front Desk Manager',
-          adminPassword: ''
+          managerName: currentHotel.manager_name || '',
+          managerTitle: currentHotel.manager_title || 'Property Manager',
+          adminPassword: '',
+          wifiId: currentHotel.wifi_id || '',
+          wifiPassword: currentHotel.wifi_password || ''
         });
 
         // 2. Fetch Categories
@@ -1434,6 +1438,14 @@ export default function Dashboard() {
                           <label className="form-label">GSTIN / Tax ID</label>
                           <input type="text" id="set-tax-num" defaultValue={hotelSettings.taxNumber} className="form-input" />
                         </div>
+                        <div className="form-group">
+                          <label className="form-label">WiFi Network Name (SSID)</label>
+                          <input type="text" id="set-wifi-id" defaultValue={hotelSettings.wifiId} className="form-input" placeholder="e.g. Weazy_Guest_WiFi" />
+                        </div>
+                        <div className="form-group">
+                          <label className="form-label">WiFi Password</label>
+                          <input type="text" id="set-wifi-pwd" defaultValue={hotelSettings.wifiPassword} className="form-input" placeholder="••••••••" />
+                        </div>
                         <div style={{ gridColumn: 'span 2', padding: '20px', borderRadius: '16px', border: '1px dashed var(--border-subtle)', display: 'flex', alignItems: 'center', gap: '16px' }}>
                           <input type="checkbox" id="set-inc" defaultChecked={hotelSettings.gstIncluded} style={{ width: '20px', height: '20px', accentColor: 'var(--grad-primary)' }} />
                           <div style={{ flex: 1 }}>
@@ -1478,6 +1490,45 @@ export default function Dashboard() {
                     <div className="card-header" style={{ padding: '24px', background: 'rgba(239, 68, 68, 0.05)' }}>
                       <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700, color: '#ef4444' }}>Security & Access Control</h2>
                     </div>
+                    
+                    <div className="card">
+                      <div className="card-header" style={{ padding: '24px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <h2 style={{ margin: 0, fontSize: '20px', fontWeight: 700 }}>Guest Self-Service Portal</h2>
+                        <span className="status-pill status-INSPECTED">Live Features</span>
+                      </div>
+                      <div style={{ padding: '32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
+                        <div style={{ padding: '24px', background: 'var(--bg-elevated)', borderRadius: '24px', textAlign: 'center' }}>
+                          <div style={{ fontWeight: 700, marginBottom: '16px', fontSize: '15px' }}>📱 Guest Reservation QR</div>
+                          <div style={{ background: 'white', padding: '16px', borderRadius: '16px', display: 'inline-block', boxShadow: 'var(--shadow-sm)', marginBottom: '16px' }}>
+                            <img 
+                              src={`https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(`https://${typeof window !== 'undefined' ? window.location.host : ''}/guest?hotelId=${hotelId}&type=reservation`)}&choe=UTF-8`} 
+                              alt="Reservation QR" 
+                              style={{ width: '150px', height: '150px' }}
+                            />
+                          </div>
+                          <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                            Guests can scan this to make a <strong>fast reservation</strong> at your property rates.
+                          </div>
+                          <button className="btn" style={{ width: '100%', marginTop: '16px', justifyContent: 'center' }} onClick={() => window.open(`https://chart.googleapis.com/chart?chs=500x500&cht=qr&chl=${encodeURIComponent(`https://${window.location.host}/guest?hotelId=${hotelId}&type=reservation`)}&choe=UTF-8`)}>Download QR</button>
+                        </div>
+
+                        <div style={{ padding: '24px', background: 'var(--bg-elevated)', borderRadius: '24px', textAlign: 'center' }}>
+                          <div style={{ fontWeight: 700, marginBottom: '16px', fontSize: '15px' }}>🔑 Guest Self Check-in QR</div>
+                          <div style={{ background: 'white', padding: '16px', borderRadius: '16px', display: 'inline-block', boxShadow: 'var(--shadow-sm)', marginBottom: '16px' }}>
+                            <img 
+                              src={`https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(`https://${typeof window !== 'undefined' ? window.location.host : ''}/guest?hotelId=${hotelId}&type=checkin`)}&choe=UTF-8`} 
+                              alt="Check-in QR" 
+                              style={{ width: '150px', height: '150px' }}
+                            />
+                          </div>
+                          <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                            For guests with existing bookings to <strong>self check-in</strong> and pick their room.
+                          </div>
+                          <button className="btn" style={{ width: '100%', marginTop: '16px', justifyContent: 'center' }} onClick={() => window.open(`https://chart.googleapis.com/chart?chs=500x500&cht=qr&chl=${encodeURIComponent(`https://${window.location.host}/guest?hotelId=${hotelId}&type=checkin`)}&choe=UTF-8`)}>Download QR</button>
+                        </div>
+                      </div>
+                    </div>
+
                     <div style={{ padding: '32px' }}>
                       <div className="form-group" style={{ maxWidth: '400px' }}>
                         <label className="form-label">Master Admin Password</label>
@@ -1509,6 +1560,8 @@ export default function Dashboard() {
                     const invNum = parseInt((document.getElementById('set-inv-num') as HTMLInputElement)?.value || String(hotelSettings.currentInvoiceNumber));
                     const bkgPre = (document.getElementById('set-bkg-pre') as HTMLInputElement)?.value || hotelSettings.bookingPrefix;
                     const bkgNum = parseInt((document.getElementById('set-bkg-num') as HTMLInputElement)?.value || String(hotelSettings.currentBookingNumber));
+                    const wId = (document.getElementById('set-wifi-id') as HTMLInputElement)?.value || hotelSettings.wifiId;
+                    const wPwd = (document.getElementById('set-wifi-pwd') as HTMLInputElement)?.value || hotelSettings.wifiPassword;
                     const gst = parseInt((document.getElementById('set-gst') as HTMLInputElement)?.value || String(hotelSettings.gstPercent));
                     const inc = (document.getElementById('set-inc') as HTMLInputElement)?.checked;
                     const pwd = (document.getElementById('set-pwd') as HTMLInputElement)?.value || hotelSettings.adminPassword;
@@ -1524,6 +1577,7 @@ export default function Dashboard() {
                       currency: curr, tax_number: taxNum, 
                       invoice_prefix: invPre, current_invoice_number: invNum,
                       booking_prefix: bkgPre, current_booking_number: bkgNum,
+                      wifi_id: wId, wifi_password: wPwd,
                       gst_percent: gst, gst_included: inc,
                       manager_name: mName, manager_title: mTitle
                     }).eq('id', hotelId);
@@ -1536,6 +1590,7 @@ export default function Dashboard() {
                       taxNumber: taxNum, gstPercent: gst, gstIncluded: inc,
                       invoicePrefix: invPre, currentInvoiceNumber: invNum,
                       bookingPrefix: bkgPre, currentBookingNumber: bkgNum,
+                      wifiId: wId, wifiPassword: wPwd,
                       managerName: mName, managerTitle: mTitle,
                       adminPassword: pwd
                     });
