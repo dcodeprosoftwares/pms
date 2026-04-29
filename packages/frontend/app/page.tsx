@@ -1565,7 +1565,7 @@ export default function Dashboard() {
                     <div style={{ padding: '32px' }}>
                       <div className="form-group" style={{ maxWidth: '400px' }}>
                         <label className="form-label">Master Admin Password</label>
-                        <input type="password" id="set-pwd" defaultValue={hotelSettings.adminPassword} className="form-input" placeholder="••••••••" />
+                        <input type="text" id="set-pwd" defaultValue={hotelSettings.adminPassword} className="form-input" placeholder="Enter Master Password" />
                         <p style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '12px' }}>Required for sensitive operations like Night Audit or editing room categories.</p>
                       </div>
                     </div>
