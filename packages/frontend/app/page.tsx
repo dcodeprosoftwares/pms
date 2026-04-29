@@ -347,7 +347,7 @@ export default function Dashboard() {
           setGlobalRooms(rms.map(r => ({
             id: r.id,
             number: r.number,
-            type: '', // To be filled by category name
+            type: r.category || '', // Correctly mapping 'category' from DB
             status: r.status as any,
             guest: r.current_guest || undefined,
             floor: 1

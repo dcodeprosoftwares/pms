@@ -107,7 +107,7 @@ function GuestPortalContent() {
       const { data: rms, error: rErr } = await supabase.from('rooms')
         .select('*')
         .eq('hotel_id', hotelId)
-        .eq('type', category.trim())
+        .eq('category', category.trim()) // Fixed column name from 'type' to 'category'
         .in('status', ['CLEAN', 'INSPECTED']);
       
       if (rErr) throw rErr;
