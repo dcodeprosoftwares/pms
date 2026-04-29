@@ -8,34 +8,43 @@ interface TopbarProps {
 export default function Topbar({ onOpenModal, hotelName }: TopbarProps) {
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-IN', {
-    weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'
+    weekday: 'short', day: 'numeric', month: 'short'
   });
   const timeStr = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
 
   return (
-    <header className="topbar">
+    <header className="topbar print-hide">
       <div className="flex-center">
         <div>
-          <div className="topbar-title text-gradient">{hotelName}</div>
-          <div className="topbar-date">{dateStr} · {timeStr} IST</div>
-        </div>
-        <div className="flex-center" style={{ marginLeft: 24, background: 'var(--status-clean-bg)', padding: '4px 12px', borderRadius: '20px' }}>
-          <span className="live-dot" />
-          <span style={{ fontSize: 11, color: 'var(--status-clean-fg)', fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase' }}>System Live</span>
+          <div className="topbar-title text-gradient" style={{ whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: '180px' }}>
+            {hotelName}
+          </div>
+          <div className="topbar-date" style={{ fontSize: '11px' }}>
+            {dateStr} · {timeStr}
+          </div>
         </div>
       </div>
 
       <div className="topbar-right">
-        <button className="btn" onClick={() => onOpenModal('audit')}>
-          <span>🌙</span> Night Audit
-        </button>
         <button className="btn" onClick={() => onOpenModal('checkin')}>
-          <span>✓</span> Quick Check-in
+          <span className="icon-only">✓</span> <span>Check-in</span>
         </button>
-        <button className="btn primary" style={{ marginLeft: 8 }} onClick={() => onOpenModal('reservation')}>
-          <span>+</span> New Reservation
+        <button className="btn primary" onClick={() => onOpenModal('reservation')}>
+          <span className="icon-only">+</span> <span>New</span>
         </button>
       </div>
+
+      <style jsx>{`
+        @media (max-width: 640px) {
+          .topbar-date {
+            display: none;
+          }
+          .icon-only {
+            font-size: 18px;
+            font-weight: 800;
+          }
+        }
+      `}</style>
     </header>
   );
 }
