@@ -297,6 +297,12 @@ export default function Dashboard() {
           mobile: user.user_metadata?.mobile || user.phone || 'Update mobile',
           email: user.email
         }]).select().single();
+        
+        if (cError) {
+          console.error("Hotel Creation Error:", cError);
+          setToast(`❌ Database Error: ${cError.message}`);
+          return;
+        }
         currentHotel = newHotel;
       }
 
@@ -1497,35 +1503,62 @@ export default function Dashboard() {
                         <span className="status-pill status-INSPECTED">Live Features</span>
                       </div>
                       <div style={{ padding: '32px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '32px' }}>
-                        <div style={{ padding: '24px', background: 'var(--bg-elevated)', borderRadius: '24px', textAlign: 'center' }}>
-                          <div style={{ fontWeight: 700, marginBottom: '16px', fontSize: '15px' }}>📱 Guest Reservation QR</div>
-                          <div style={{ background: 'white', padding: '16px', borderRadius: '16px', display: 'inline-block', boxShadow: 'var(--shadow-sm)', marginBottom: '16px' }}>
-                            <img 
-                              src={`https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(`https://${typeof window !== 'undefined' ? window.location.host : ''}/guest?hotelId=${hotelId}&type=reservation`)}&choe=UTF-8`} 
-                              alt="Reservation QR" 
-                              style={{ width: '150px', height: '150px' }}
-                            />
+                        {!hotelId ? (
+                          <div style={{ gridColumn: 'span 2', textAlign: 'center', padding: '40px', color: 'var(--text-dim)' }}>
+                            <div style={{ fontSize: '24px', marginBottom: '16px' }}>⏳</div>
+                            <div style={{ fontWeight: 600 }}>Initializing your property data...</div>
+                            <div style={{ fontSize: '12px', marginTop: '8px' }}>This may take a few seconds on first load.</div>
                           </div>
-                          <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-                            Guests can scan this to make a <strong>fast reservation</strong> at your property rates.
-                          </div>
-                          <button className="btn" style={{ width: '100%', marginTop: '16px', justifyContent: 'center' }} onClick={() => window.open(`https://chart.googleapis.com/chart?chs=500x500&cht=qr&chl=${encodeURIComponent(`https://${window.location.host}/guest?hotelId=${hotelId}&type=reservation`)}&choe=UTF-8`)}>Download QR</button>
-                        </div>
+                        ) : (
+                          <>
+                            <div style={{ padding: '24px', background: 'var(--bg-elevated)', borderRadius: '24px', textAlign: 'center' }}>
+                              <div style={{ fontWeight: 700, marginBottom: '16px', fontSize: '15px' }}>📱 Guest Reservation QR</div>
+                              <div style={{ background: 'white', padding: '16px', borderRadius: '16px', display: 'inline-block', boxShadow: 'var(--shadow-sm)', marginBottom: '16px' }}>
+                                <img 
+                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`https://${typeof window !== 'undefined' ? window.location.host : 'pms-psi-one.vercel.app'}/guest?hotelId=${hotelId}&type=reservation`)}`} 
+                                  alt="Reservation QR" 
+                                  style={{ width: '150px', height: '150px' }}
+                                  onLoad={() => console.log('QR Loaded')}
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                    const p = (e.target as HTMLElement).parentElement;
+                                    if(p) p.innerHTML = '<div style="font-size:11px;padding:20px;color:red">Image Blocked.<br/>Link Ready below.</div>';
+                                  }}
+                                />
+                              </div>
+                              <div style={{ fontSize: '11px', color: 'var(--accent-primary)', marginBottom: '12px', wordBreak: 'break-all', opacity: 0.7 }}>
+                                {`https://${typeof window !== 'undefined' ? window.location.host : ''}/guest?hotelId=${hotelId}&type=reservation`}
+                              </div>
+                              <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                                Guests can scan this to make a <strong>fast reservation</strong>.
+                              </div>
+                              <button className="btn" style={{ width: '100%', marginTop: '16px', justifyContent: 'center' }} onClick={() => window.open(`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(`https://${window.location.host}/guest?hotelId=${hotelId}&type=reservation`)}`)}>Download QR</button>
+                            </div>
 
-                        <div style={{ padding: '24px', background: 'var(--bg-elevated)', borderRadius: '24px', textAlign: 'center' }}>
-                          <div style={{ fontWeight: 700, marginBottom: '16px', fontSize: '15px' }}>🔑 Guest Self Check-in QR</div>
-                          <div style={{ background: 'white', padding: '16px', borderRadius: '16px', display: 'inline-block', boxShadow: 'var(--shadow-sm)', marginBottom: '16px' }}>
-                            <img 
-                              src={`https://chart.googleapis.com/chart?chs=200x200&cht=qr&chl=${encodeURIComponent(`https://${typeof window !== 'undefined' ? window.location.host : ''}/guest?hotelId=${hotelId}&type=checkin`)}&choe=UTF-8`} 
-                              alt="Check-in QR" 
-                              style={{ width: '150px', height: '150px' }}
-                            />
-                          </div>
-                          <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
-                            For guests with existing bookings to <strong>self check-in</strong> and pick their room.
-                          </div>
-                          <button className="btn" style={{ width: '100%', marginTop: '16px', justifyContent: 'center' }} onClick={() => window.open(`https://chart.googleapis.com/chart?chs=500x500&cht=qr&chl=${encodeURIComponent(`https://${window.location.host}/guest?hotelId=${hotelId}&type=checkin`)}&choe=UTF-8`)}>Download QR</button>
-                        </div>
+                            <div style={{ padding: '24px', background: 'var(--bg-elevated)', borderRadius: '24px', textAlign: 'center' }}>
+                              <div style={{ fontWeight: 700, marginBottom: '16px', fontSize: '15px' }}>🔑 Guest Self Check-in QR</div>
+                              <div style={{ background: 'white', padding: '16px', borderRadius: '16px', display: 'inline-block', boxShadow: 'var(--shadow-sm)', marginBottom: '16px' }}>
+                                <img 
+                                  src={`https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(`https://${typeof window !== 'undefined' ? window.location.host : 'pms-psi-one.vercel.app'}/guest?hotelId=${hotelId}&type=checkin`)}`} 
+                                  alt="Check-in QR" 
+                                  style={{ width: '150px', height: '150px' }}
+                                  onError={(e) => {
+                                    (e.target as HTMLImageElement).style.display = 'none';
+                                    const p = (e.target as HTMLElement).parentElement;
+                                    if(p) p.innerHTML = '<div style="font-size:11px;padding:20px;color:red">Image Blocked.<br/>Link Ready below.</div>';
+                                  }}
+                                />
+                              </div>
+                              <div style={{ fontSize: '11px', color: 'var(--accent-primary)', marginBottom: '12px', wordBreak: 'break-all', opacity: 0.7 }}>
+                                {`https://${typeof window !== 'undefined' ? window.location.host : ''}/guest?hotelId=${hotelId}&type=checkin`}
+                              </div>
+                              <div style={{ fontSize: '13px', color: 'var(--text-muted)', lineHeight: '1.5' }}>
+                                For guests with existing bookings to <strong>self check-in</strong>.
+                              </div>
+                              <button className="btn" style={{ width: '100%', marginTop: '16px', justifyContent: 'center' }} onClick={() => window.open(`https://api.qrserver.com/v1/create-qr-code/?size=1000x1000&data=${encodeURIComponent(`https://${window.location.host}/guest?hotelId=${hotelId}&type=checkin`)}`)}>Download QR</button>
+                            </div>
+                          </>
+                        )}
                       </div>
                     </div>
 
