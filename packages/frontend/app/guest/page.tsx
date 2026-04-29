@@ -166,6 +166,62 @@ function GuestPortalContent() {
 
   if (loading) return <div className="portal-loader">Loading Guest Portal...</div>;
   
+  // Important: If we are on the Welcome screen (Step 3), STAY THERE.
+  if (step === 3) {
+    return (
+      <div className="guest-portal">
+        <header className="portal-header">
+          <img src="/weazy-logo.png" alt="Logo" className="portal-logo" />
+          <h1>{hotel?.name}</h1>
+        </header>
+        <main className="portal-content">
+          <div className="card final-card animate-slide-up">
+            <div className="final-icon">🏨</div>
+            <h2 style={{ textAlign: 'center' }}>Welcome to {hotel?.name}!</h2>
+            <p className="final-msg" style={{ textAlign: 'center' }}>
+              Check-in Successful for <strong>Room {selectedRoom}</strong>.
+            </p>
+            <div className="notification-box">
+              📢 Please collect the key of selected room <strong>{selectedRoom}</strong> from reception.
+            </div>
+
+            {(hotel?.wifi_id || hotel?.wifi_password) && (
+              <div className="wifi-box">
+                <div style={{ fontWeight: 700, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  📶 Stay Connected
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                  <span>Network:</span>
+                  <strong>{hotel.wifi_id || 'Hotel_Guest_WiFi'}</strong>
+                </div>
+                <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                  <span>Password:</span>
+                  <strong>{hotel.wifi_password || 'Welcome!'}</strong>
+                </div>
+              </div>
+            )}
+
+            <p className="blessing" style={{ textAlign: 'center' }}>Have a wonderful stay at {hotel?.name}!</p>
+          </div>
+        </main>
+        <style jsx>{`
+          .guest-portal { min-height: 100vh; background: #f8fafc; padding: 20px; font-family: 'Inter', sans-serif; }
+          .portal-header { text-align: center; margin-bottom: 32px; padding-top: 20px; }
+          .portal-logo { height: 50px; margin-bottom: 12px; }
+          .portal-header h1 { font-size: 20px; font-weight: 800; color: #0f172a; margin: 0; }
+          .card { background: white; border-radius: 24px; padding: 32px 24px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); border: 1px solid #e2e8f0; max-width: 500px; margin: 0 auto; }
+          .final-icon { font-size: 64px; text-align: center; margin-bottom: 24px; }
+          .notification-box { background: #fffbeb; border: 1px solid #fef3c7; padding: 16px; border-radius: 12px; color: #92400e; font-size: 14px; line-height: 1.5; margin: 20px 0; }
+          .wifi-box { background: #f0f9ff; border: 1px solid #bae6fd; padding: 16px; border-radius: 12px; color: #0369a1; font-size: 14px; margin-bottom: 20px; }
+          .final-msg { color: #64748b; font-size: 16px; margin-bottom: 24px; }
+          .blessing { color: #64748b; font-size: 14px; margin-top: 20px; }
+          .animate-slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+          @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        `}</style>
+      </div>
+    );
+  }
+
   if (isProcessing) {
     return (
       <div className="guest-portal flex-center-vh">
