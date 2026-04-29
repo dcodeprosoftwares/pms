@@ -242,10 +242,10 @@ export default function Dashboard() {
     if (!hotelId) return;
     await supabase.from('hotels').update({ current_invoice_number: newInvoiceNumber + 1 }).eq('id', hotelId);
 
-    // Free up Rooms
+    // Free up Rooms (Mark as CLEAN so they are immediately available)
     const roomNums = folioBkgs.map(f => f.roomNumber).filter(n => !!n);
     if (roomNums.length > 0) {
-      await supabase.from('rooms').update({ status: 'DIRTY', current_guest: null }).in('number', roomNums).eq('hotel_id', hotelId);
+      await supabase.from('rooms').update({ status: 'CLEAN', current_guest: null }).in('number', roomNums).eq('hotel_id', hotelId);
     }
 
     // Local State
