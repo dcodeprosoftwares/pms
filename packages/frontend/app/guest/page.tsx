@@ -30,17 +30,20 @@ function GuestPortalContent() {
   // Check-in State
   const [searchBkgId, setSearchBkgId] = useState('');
 
+  // 1. Aggressive Persistence Check (Runs immediately on load)
   useEffect(() => {
     if (!hotelId) return;
-
-    // 1. Check if guest is already checked in (Persistence)
-    const savedCheckIn = localStorage.getItem(`weazy_checkin_${hotelId}`);
-    if (savedCheckIn) {
-      const data = JSON.parse(savedCheckIn);
+    const saved = localStorage.getItem(`weazy_success_${hotelId}`);
+    if (saved) {
+      const data = JSON.parse(saved);
       setBookingId(data.bookingId);
       setSelectedRoom(data.roomNum);
       setStep(3);
     }
+  }, [hotelId]);
+
+  useEffect(() => {
+    if (!hotelId) return;
 
     const loadHotel = async () => {
       try {
@@ -100,19 +103,12 @@ function GuestPortalContent() {
   };
 
   const loadAvailableRooms = async (category: string) => {
-    try {
-      const { data: rms, error: rErr } = await supabase.from('rooms')
-        .select('*')
-        .eq('hotel_id', hotelId)
-        .eq('type', category) // Must match the booked category
-        .eq('status', 'CLEAN');
-      
-      if (rErr) throw rErr;
-      setAvailableRooms(rms || []);
-    } catch (err: any) {
-      console.error("Room Load Error:", err);
-      setError(`Could not load rooms: ${err.message}`);
-    }
+    const { data: rms } = await supabase.from('rooms')
+      .select('*')
+      .eq('hotel_id', hotelId)
+      .eq('type', category)
+      .eq('status', 'CLEAN');
+    setAvailableRooms(rms || []);
   };
 
   const handleCheckInSearch = async () => {
@@ -145,8 +141,13 @@ function GuestPortalContent() {
     setIsProcessing(true);
     const now = new Date().toLocaleString('en-IN');
     
+    // Save to memory IMMEDIATELY so even a crash during update won't lose this
+    localStorage.setItem(`weazy_success_${hotelId}`, JSON.stringify({
+      bookingId, roomNum, hotelId
+    }));
+
     try {
-      await new Promise(r => setTimeout(r, 1200));
+      await new Promise(r => setTimeout(r, 1000));
 
       const { error: bErr } = await supabase.from('bookings').update({
         status: 'CHECKED_IN',
@@ -163,11 +164,6 @@ function GuestPortalContent() {
 
       if (rErr) throw rErr;
 
-      // SAVE TO PERSISTENCE
-      localStorage.setItem(`weazy_checkin_${hotelId}`, JSON.stringify({
-        bookingId, roomNum, timestamp: Date.now()
-      }));
-
       setSelectedRoom(roomNum);
       setStep(3);
     } catch (err: any) {
@@ -178,6 +174,44 @@ function GuestPortalContent() {
   };
 
   if (loading) return <div className="portal-loader">Loading Guest Portal...</div>;
+
+  // STEP 3: WELCOME (Persistent)
+  if (step === 3) {
+    return (
+      <div className="guest-portal flex-center-vh">
+        <div className="card text-center animate-slide-up">
+           <img src="/weazy-logo.png" alt="Logo" style={{ height: 40, marginBottom: 16 }} />
+           <div style={{ fontSize: 24, fontWeight: 800, color: '#0f172a', marginBottom: 4 }}>{hotel?.name}</div>
+           <hr style={{ margin: '20px 0', opacity: 0.1 }} />
+           <div className="final-icon" style={{ fontSize: 50 }}>🏨</div>
+           <h2 style={{ fontSize: 28, fontWeight: 800 }}>Welcome!</h2>
+           <p style={{ fontSize: 16, color: '#64748b' }}>Checked-in to <strong>Room {selectedRoom}</strong>.</p>
+           
+           <div className="notification-box" style={{ background: '#fffbeb', border: '1px solid #fef3c7', padding: '16px', borderRadius: '16px', color: '#92400e', textAlign: 'left', margin: '20px 0' }}>
+             📢 Please collect your key from reception.
+           </div>
+
+           {(hotel?.wifi_id || hotel?.wifi_password) && (
+              <div className="wifi-box" style={{ background: '#f0f9ff', border: '1px solid #bae6fd', padding: '16px', borderRadius: '16px', color: '#0369a1', textAlign: 'left', marginBottom: 20 }}>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>📶 Stay Connected</div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}><span>Network:</span><strong>{hotel.wifi_id}</strong></div>
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}><span>Password:</span><strong>{hotel.wifi_password}</strong></div>
+              </div>
+           )}
+           
+           <p style={{ fontSize: 13, color: '#94a3b8' }}>Have a wonderful stay!</p>
+           <button className="submit-btn" style={{ background: '#f1f5f9', color: '#475569', marginTop: 24, padding: 12, fontSize: 12 }} onClick={() => { localStorage.removeItem(`weazy_success_${hotelId}`); window.location.reload(); }}>Done</button>
+        </div>
+        <style jsx>{`
+          .guest-portal { min-height: 100vh; background: #f8fafc; padding: 20px; font-family: 'Inter', sans-serif; display: flex; align-items: center; justify-content: center; }
+          .card { background: white; border-radius: 32px; padding: 40px 24px; box-shadow: 0 20px 40px rgba(0,0,0,0.08); border: 1px solid #e2e8f0; width: 100%; max-width: 400px; }
+          .animate-slide-up { animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; }
+          @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+          .submit-btn { width: 100%; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; }
+        `}</style>
+      </div>
+    );
+  }
 
   return (
     <div className="guest-portal">
@@ -245,25 +279,6 @@ function GuestPortalContent() {
             {error && <div className="error-msg" style={{ marginTop: 12 }}>{error}</div>}
           </div>
         )}
-
-        {!isProcessing && step === 3 && (
-          <div className="card final-card animate-slide-up">
-            <div className="final-icon">🏨</div>
-            <h2 style={{ textAlign: 'center' }}>Welcome!</h2>
-            <p className="final-msg" style={{ textAlign: 'center' }}>Checked-in to <strong>Room {selectedRoom}</strong>.</p>
-            <div className="notification-box">📢 Please collect your key from reception.</div>
-            
-            {(hotel?.wifi_id || hotel?.wifi_password) && (
-              <div className="wifi-box">
-                <div style={{ fontWeight: 700, marginBottom: '8px' }}>📶 Stay Connected</div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Network:</span><strong>{hotel.wifi_id}</strong></div>
-                <div style={{ display: 'flex', justifyContent: 'space-between' }}><span>Password:</span><strong>{hotel.wifi_password}</strong></div>
-              </div>
-            )}
-            <p style={{ textAlign: 'center', fontSize: '14px', color: '#64748b' }}>Have a wonderful stay at {hotel?.name}!</p>
-            <button className="submit-btn" style={{ background: '#f1f5f9', color: '#475569', marginTop: 20 }} onClick={() => { localStorage.removeItem(`weazy_checkin_${hotelId}`); window.location.reload(); }}>New Action</button>
-          </div>
-        )}
       </main>
 
       <style jsx>{`
@@ -283,16 +298,11 @@ function GuestPortalContent() {
         .room-status { font-size: 10px; font-weight: 700; color: #10b981; }
         .success-badge { font-size: 48px; text-align: center; }
         .bkg-badge { background: #f1f5f9; padding: 8px; border-radius: 8px; text-align: center; font-family: monospace; font-weight: 700; }
-        .final-icon { font-size: 64px; text-align: center; margin-bottom: 24px; }
-        .notification-box { background: #fffbeb; border: 1px solid #fef3c7; padding: 16px; border-radius: 12px; color: #92400e; font-size: 14px; margin: 20px 0; }
-        .wifi-box { background: #f0f9ff; border: 1px solid #bae6fd; padding: 16px; border-radius: 12px; color: #0369a1; font-size: 14px; margin-bottom: 20px; }
         .error-msg { color: #ef4444; font-size: 13px; font-weight: 600; margin-top: 12px; text-align: center; }
         .spinner-large { width: 40px; height: 40px; border: 4px solid #f3f4f6; border-top: 4px solid #6366f1; border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto; }
         @keyframes spin { to { transform: rotate(360deg); } }
         .animate-fade-in { animation: fadeIn 0.4s ease-out; }
-        .animate-slide-up { animation: slideUp 0.5s ease-out; }
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
     </div>
   );
