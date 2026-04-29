@@ -1,0 +1,13 @@
+node_modules/
+.env
+.env.local
+.env.*.local
+dist/
+.next/
+cdk.out/
+*.js.map
+*.d.ts
+coverage/
+.DS_Store
+*.log
+cdk.context.json

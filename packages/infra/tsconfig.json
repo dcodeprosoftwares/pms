@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "commonjs",
+    "lib": ["ES2020", "dom"],
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "declaration": true,
+    "sourceMap": true,
+    "outDir": "./dist",
+    "rootDir": "./",
+    "paths": {
+      "@weazy-pms/shared": ["../shared/src"]
+    }
+  },
+  "include": ["bin/**/*", "stacks/**/*"],
+  "exclude": ["node_modules", "dist", "cdk.out"]
+}

@@ -1,0 +1,21 @@
+{
+  "name": "weazy-pms",
+  "version": "1.0.0",
+  "description": "Weazy PMS — Serverless SaaS Hotel Property Management System",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=packages/frontend",
+    "build": "npm run build --workspace=packages/frontend",
+    "deploy:dev": "npm run deploy --workspace=packages/infra -- --context env=dev",
+    "deploy:prod": "npm run deploy --workspace=packages/infra -- --context env=prod",
+    "synth": "npm run synth --workspace=packages/infra",
+    "test": "npm test --workspaces",
+    "lint": "npm run lint --workspaces"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

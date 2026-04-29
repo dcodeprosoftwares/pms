@@ -1,0 +1,20 @@
+{
+  "name": "@weazy-pms/shared",
+  "version": "1.0.0",
+  "description": "Shared types, DB client, and auth utilities",
+  "main": "src/index.ts",
+  "scripts": {
+    "build": "tsc --noEmit"
+  },
+  "dependencies": {
+    "pg": "^8.13.3",
+    "jsonwebtoken": "^9.0.2",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/pg": "^8.11.10",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/node": "^22.15.3",
+    "typescript": "^5.8.3"
+  }
+}

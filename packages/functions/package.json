@@ -1,0 +1,30 @@
+{
+  "name": "@weazy-pms/functions",
+  "version": "1.0.0",
+  "description": "Lambda function handlers for Weazy PMS",
+  "private": true,
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc --watch",
+    "test": "jest"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.787.0",
+    "@aws-sdk/client-s3": "^3.787.0",
+    "@aws-sdk/client-ses": "^3.787.0",
+    "@aws-sdk/client-eventbridge": "^3.787.0",
+    "@aws-sdk/lib-dynamodb": "^3.787.0",
+    "@aws-sdk/s3-request-presigner": "^3.787.0",
+    "@weazy-pms/shared": "*",
+    "uuid": "^11.1.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.149",
+    "@types/uuid": "^10.0.0",
+    "@types/node": "^22.15.3",
+    "typescript": "^5.8.3",
+    "jest": "^29.7.0",
+    "@types/jest": "^29.5.14"
+  }
+}
