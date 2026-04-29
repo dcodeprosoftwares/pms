@@ -25,26 +25,37 @@ export default function RoomMatrix({ rooms, onUpdateRooms, adminPassword }: Room
   const filtered = filter === 'ALL' ? rooms : rooms.filter(r => r.status === filter);
 
   const cycleStatus = (id: string) => {
-    if (adminPassword) {
-      const pwd = window.prompt("Security Check: Enter Admin Password to change room status");
-      if (pwd === null) return; // User cancelled
-      if (pwd !== adminPassword) {
-        window.alert("❌ Incorrect Admin Password!");
-        return;
-      }
+    const room = rooms.find(r => r.id === id);
+    if (!room) return;
+
+    // PROTECTION: Cannot manually cycle an OCCUPIED room. 
+    // It must be checked-out via the billing module.
+    if (room.status === 'OCCUPIED') {
+      window.alert("🔒 This room is currently OCCUPIED by a guest. To change its status, please perform a Check-out in the Billing section.");
+      return;
     }
-    onUpdateRooms(rooms.map(r => {
-      if (r.id !== id) return r;
-      // Cycle: DIRTY -> CLEAN -> INSPECTED -> OCCUPIED -> OOO -> DIRTY
-      const cycle: Record<RoomStatus, RoomStatus> = {
-        'DIRTY': 'CLEAN',
-        'CLEAN': 'INSPECTED',
-        'INSPECTED': 'OCCUPIED',
-        'OCCUPIED': 'OOO',
-        'OOO': 'DIRTY'
-      };
-      return { ...r, status: cycle[r.status] };
-    }));
+
+    if (adminPassword) {
+      const pwd = window.prompt("Security Check: Enter Admin Password to change status");
+      if (pwd === null) return;
+      if (pwd !== adminPassword) return window.alert("❌ Incorrect Password!");
+    }
+
+    const nextStatusMap: Record<RoomStatus, RoomStatus> = {
+      'DIRTY': 'CLEAN',
+      'CLEAN': 'INSPECTED',
+      'INSPECTED': 'DIRTY', // Cycle back to dirty if needed
+      'OOO': 'DIRTY',      // Back to dirty after repair
+      'OCCUPIED': 'OCCUPIED' // Safety
+    };
+
+    // Special case for OOO: If user wants to mark a DIRTY room as OOO
+    let nextStatus = nextStatusMap[room.status];
+    if (room.status === 'DIRTY' && window.confirm("Mark room as Out of Order (OOO)?")) {
+      nextStatus = 'OOO';
+    }
+
+    onUpdateRooms(rooms.map(r => r.id === id ? { ...r, status: nextStatus } : r));
   };
 
   return (

@@ -15,7 +15,7 @@ import Auth from '@/components/Auth';
 
 import { RoomData, RoomStatus } from '@/components/RoomMatrix';
 
-export type ModalType = 'reservation' | 'checkin' | 'audit' | 'pos' | 'add-category' | 'add-room' | 'checkout-details' | 'record-expense' | 'add-expense-type' | 'add-inv-item' | 'add-vendor' | 'record-inv-transaction' | 'settings' | null;
+export type ModalType = 'reservation' | 'checkin' | 'audit' | 'pos' | 'add-category' | 'add-room' | 'checkout-details' | 'record-expense' | 'add-expense-type' | 'add-inv-item' | 'add-vendor' | 'record-inv-transaction' | 'booking-detail' | 'settings' | null;
 
 interface RoomCategory {
   name: string;
@@ -142,6 +142,7 @@ export default function Dashboard() {
   const [checkoutBkgId, setCheckoutBkgId] = useState<string | null>(null);
   const [bookingSearch, setBookingSearch] = useState('');
   const [guestSearch, setGuestSearch] = useState('');
+  const [selectedDetailBkg, setSelectedDetailBkg] = useState<string | null>(null);
 
   const closeModals = () => {
     setModalType(null);
@@ -374,7 +375,10 @@ export default function Dashboard() {
             invoiceNumber: b.invoice_number || undefined,
             companyName: b.company_name || undefined,
             customerGst: b.customer_gst || undefined,
-            folioId: b.folio_id || undefined
+            folioId: b.folio_id || undefined,
+            idProof: b.id_proof || undefined,
+            address: b.address || undefined,
+            purpose: b.purpose || undefined
           })));
         }
 
@@ -928,6 +932,7 @@ export default function Dashboard() {
                   <table className="modern-table">
                     <thead>
                       <tr>
+                        <th>S.No.</th>
                         <th>Booking ID</th>
                         <th>Guest</th>
                         <th>Dates</th>
@@ -938,14 +943,15 @@ export default function Dashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {globalBookings.filter(b => {
+                      {[...globalBookings].filter(b => {
                         const s = bookingSearch.toLowerCase();
                         return b.guestName.toLowerCase().includes(s) || 
                                b.id.toLowerCase().includes(s) || 
                                (b.mobile && b.mobile.includes(s));
-                      }).map(b => (
+                      }).reverse().map((b, idx) => (
                         <tr key={b.id}>
-                          <td style={{ fontFamily: 'JetBrains Mono, monospace' }}>{b.id}</td>
+                          <td style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: 12 }}>{idx + 1}</td>
+                          <td style={{ fontFamily: 'JetBrains Mono, monospace', cursor: 'pointer', color: 'var(--accent-primary)', textDecoration: 'underline' }} onClick={() => { setSelectedDetailBkg(b.id); setModalType('booking-detail'); }}>{b.id}</td>
                           <td style={{ fontWeight: 600 }}>{b.guestName}</td>
                           <td>
                             <div>{b.dates}</div>
@@ -960,12 +966,26 @@ export default function Dashboard() {
                           <td>
                             <span className={`status-pill status-${b.status === 'CONFIRMED' ? 'CLEAN' : b.status === 'CHECKED_IN' ? 'INSPECTED' : 'DIRTY'}`}>{b.status}</span>
                             {b.status === 'CONFIRMED' && (
-                              <button 
-                                onClick={() => { setCheckinBkgId(b.id); setModalType('checkin'); }} 
-                                style={{ marginLeft: 12, padding: '4px 8px', fontSize: 11, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 4, cursor: 'pointer' }}
-                              >
-                                Check In
-                              </button>
+                              <>
+                                <button 
+                                  onClick={() => { setCheckinBkgId(b.id); setModalType('checkin'); }} 
+                                  style={{ marginLeft: 12, padding: '4px 8px', fontSize: 11, background: 'var(--bg-elevated)', border: '1px solid var(--border-subtle)', borderRadius: 4, cursor: 'pointer' }}
+                                >
+                                  Check In
+                                </button>
+                                <button 
+                                  onClick={async () => {
+                                    if (!window.confirm(`Delete booking ${b.id} for ${b.guestName}? This cannot be undone.`)) return;
+                                    const { error } = await supabase.from('bookings').delete().eq('custom_id', b.id).eq('hotel_id', hotelId);
+                                    if (error) return setToast(`❌ Delete Failed: ${error.message}`);
+                                    setGlobalBookings(prev => prev.filter(bk => bk.id !== b.id));
+                                    setToast(`🗑️ Booking ${b.id} deleted permanently.`);
+                                  }}
+                                  style={{ marginLeft: 6, padding: '4px 8px', fontSize: 11, background: '#fef2f2', color: '#ef4444', border: '1px solid #fecaca', borderRadius: 4, cursor: 'pointer', fontWeight: 600 }}
+                                >
+                                  Delete
+                                </button>
+                              </>
                             )}
                             {b.status === 'CHECKED_IN' && (
                               <button 
@@ -1669,7 +1689,7 @@ export default function Dashboard() {
           background: 'rgba(15, 23, 42, 0.4)', backdropFilter: 'blur(4px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000
         }}>
-          <div className="card animate-slide-up" style={{ width: 400, background: 'var(--bg-surface)', boxShadow: 'var(--shadow-lg)' }}>
+          <div className="card animate-slide-up" style={{ width: modalType === 'booking-detail' ? 560 : 400, maxHeight: '90vh', overflowY: 'auto', background: 'var(--bg-surface)', boxShadow: 'var(--shadow-lg)' }}>
             <div className="card-header">
               <span className="card-title">
                 {modalType === 'reservation' && 'New Reservation'}
@@ -1683,6 +1703,7 @@ export default function Dashboard() {
                 {modalType === 'add-inv-item' && 'New Inventory Item'}
                 {modalType === 'add-vendor' && 'New Vendor'}
                 {modalType === 'record-inv-transaction' && 'Record Stock Transaction'}
+                {modalType === 'booking-detail' && 'Booking Details'}
               </span>
               <button 
                 onClick={() => { closeModals(); setCheckinBkgId(''); }}
@@ -2009,6 +2030,69 @@ export default function Dashboard() {
                     </div>
                   </div>
 
+                  {/* Guest Companions Section */}
+                  <div style={{ marginTop: 16, padding: 16, border: '1px solid var(--border-subtle)', borderRadius: 12, background: 'var(--bg-surface)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>👥 Guest Details</div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>Total Guests:</label>
+                        <input type="number" id="checkin-total-guests" min="1" max="10" defaultValue="1" style={{ width: 60, padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)', textAlign: 'center' }}
+                          onChange={(e) => {
+                            const count = Math.min(10, Math.max(1, parseInt(e.target.value) || 1));
+                            const container = document.getElementById('guest-rows-container');
+                            if (!container) return;
+                            container.innerHTML = '';
+                            for (let i = 0; i < count; i++) {
+                              const row = document.createElement('div');
+                              row.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1.5fr 2fr;gap:8px;margin-bottom:8px;align-items:center;';
+                              row.innerHTML = `
+                                <input type="text" class="guest-name" placeholder="Guest ${i + 1} Name" style="padding:8px 10px;border-radius:6px;border:1px solid var(--border-subtle);background:var(--bg-elevated);color:var(--text-main);font-size:12px" />
+                                <select class="guest-gender" style="padding:8px 6px;border-radius:6px;border:1px solid var(--border-subtle);background:var(--bg-elevated);color:var(--text-main);font-size:12px">
+                                  <option value="Male">Male</option>
+                                  <option value="Female">Female</option>
+                                  <option value="Other">Other</option>
+                                </select>
+                                <select class="guest-id-type" style="padding:8px 6px;border-radius:6px;border:1px solid var(--border-subtle);background:var(--bg-elevated);color:var(--text-main);font-size:12px">
+                                  <option value="Aadhar">Aadhar</option>
+                                  <option value="Passport">Passport</option>
+                                  <option value="Driving License">DL</option>
+                                  <option value="Voter ID">Voter ID</option>
+                                  <option value="PAN">PAN</option>
+                                </select>
+                                <input type="text" class="guest-id-num" placeholder="ID Number" style="padding:8px 10px;border-radius:6px;border:1px solid var(--border-subtle);background:var(--bg-elevated);color:var(--text-main);font-size:12px" />
+                              `;
+                              container.appendChild(row);
+                            }
+                          }}
+                        />
+                      </div>
+                    </div>
+                    <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1.5fr 2fr', gap: 8, marginBottom: 8 }}>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Name</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>Gender</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>ID Type</div>
+                      <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase' }}>ID Number</div>
+                    </div>
+                    <div id="guest-rows-container">
+                      <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1.5fr 2fr', gap: 8, marginBottom: 8 }}>
+                        <input type="text" className="guest-name" placeholder="Guest 1 Name" style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)', fontSize: 12 }} />
+                        <select className="guest-gender" style={{ padding: '8px 6px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)', fontSize: 12 }}>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                        <select className="guest-id-type" style={{ padding: '8px 6px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)', fontSize: 12 }}>
+                          <option value="Aadhar">Aadhar</option>
+                          <option value="Passport">Passport</option>
+                          <option value="Driving License">DL</option>
+                          <option value="Voter ID">Voter ID</option>
+                          <option value="PAN">PAN</option>
+                        </select>
+                        <input type="text" className="guest-id-num" placeholder="ID Number" style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)', fontSize: 12 }} />
+                      </div>
+                    </div>
+                  </div>
+
                   <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginTop: 12, marginBottom: 4 }}>Assign Physical Room</div>
                   <select id="checkin-room" style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)' }}>
                     <option value="">{checkinBkg ? `-- Select Available ${checkinBkg.roomType} --` : '-- Select Available Room --'}</option>
@@ -2049,6 +2133,19 @@ export default function Dashboard() {
                     const addr = (document.getElementById('checkin-address') as HTMLInputElement)?.value;
                     const purp = (document.getElementById('checkin-purpose') as HTMLInputElement)?.value;
                     const advance = parseFloat((document.getElementById('checkin-advance') as HTMLInputElement)?.value || '0');
+                    const totalGuests = parseInt((document.getElementById('checkin-total-guests') as HTMLInputElement)?.value || '1');
+
+                    // Collect guest companion details
+                    const guestNames = document.querySelectorAll('.guest-name') as NodeListOf<HTMLInputElement>;
+                    const guestGenders = document.querySelectorAll('.guest-gender') as NodeListOf<HTMLSelectElement>;
+                    const guestIdTypes = document.querySelectorAll('.guest-id-type') as NodeListOf<HTMLSelectElement>;
+                    const guestIdNums = document.querySelectorAll('.guest-id-num') as NodeListOf<HTMLInputElement>;
+                    const guestsInfo = Array.from(guestNames).map((_, i) => ({
+                      name: guestNames[i]?.value || '',
+                      gender: guestGenders[i]?.value || 'Male',
+                      idType: guestIdTypes[i]?.value || 'Aadhar',
+                      idNumber: guestIdNums[i]?.value || ''
+                    })).filter(g => g.name);
 
                     if (!mob) return setToast('❌ Mobile Number is required.');
 
@@ -2064,8 +2161,13 @@ export default function Dashboard() {
                         actual_check_in_time: timestamp,
                         room_number: rNum,
                         mobile: mob,
+                        id_proof: idp,
+                        address: addr,
+                        purpose: purp,
                         amount_paid: newPaid,
-                        payment_status: newPayStatus
+                        payment_status: newPayStatus,
+                        total_guests: totalGuests,
+                        guests_info: guestsInfo
                       })
                       .eq('custom_id', bkgId)
                       .eq('hotel_id', hotelId);
@@ -2092,7 +2194,7 @@ export default function Dashboard() {
                     // Update Room
                     setGlobalRooms(prev => prev.map(r => r.number === rNum ? { ...r, status: 'OCCUPIED', guest: guestName } : r));
 
-                    setToast(`✅ ${guestName} successfully checked into Room ${rNum}.`);
+                    setToast(`✅ ${guestName} (${totalGuests} guests) successfully checked into Room ${rNum}.`);
                     closeModals();
                     setCheckinBkgId('');
                   }}>Complete Check-in</button>
@@ -2308,6 +2410,132 @@ export default function Dashboard() {
                   }}>Record Expense</button>
                 </>
               )}
+              {modalType === 'booking-detail' && (() => {
+                const bkg = globalBookings.find(b => b.id === selectedDetailBkg);
+                if (!bkg) return <p>Booking not found.</p>;
+                const isLocked = bkg.status === 'CHECKED_OUT';
+                const inputStyle: any = { width: '100%', padding: '10px 16px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: isLocked ? 'var(--bg-surface)' : 'var(--bg-elevated)', color: isLocked ? 'var(--text-muted)' : 'var(--text-main)', fontSize: 13, cursor: isLocked ? 'not-allowed' : 'text' };
+                const labelStyle = { fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4, display: 'block', textTransform: 'uppercase' as const, letterSpacing: '0.5px' };
+                return (
+                  <>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                      <div>
+                        <div style={{ fontSize: 18, fontWeight: 700 }}>{bkg.guestName}</div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>Booking: {bkg.id}</div>
+                      </div>
+                      <span className={`status-pill status-${bkg.status === 'CONFIRMED' ? 'CLEAN' : bkg.status === 'CHECKED_IN' ? 'INSPECTED' : 'DIRTY'}`}>{bkg.status}</span>
+                    </div>
+
+                    {isLocked && (
+                      <div style={{ background: '#fef2f2', border: '1px solid #fecaca', padding: '10px 14px', borderRadius: 8, fontSize: 12, color: '#991b1b', marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                        🔒 This booking is checked-out. Details are read-only.
+                      </div>
+                    )}
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                      <div>
+                        <label style={labelStyle}>Guest Name</label>
+                        <input type="text" id="detail-name" defaultValue={bkg.guestName} style={inputStyle} disabled={isLocked} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Mobile</label>
+                        <input type="tel" id="detail-mobile" defaultValue={bkg.mobile || ''} style={inputStyle} disabled={isLocked} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>ID Proof (Aadhar/Passport)</label>
+                        <input type="text" id="detail-idproof" defaultValue={bkg.idProof || ''} style={inputStyle} disabled={isLocked} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Address</label>
+                        <input type="text" id="detail-address" defaultValue={bkg.address || ''} style={inputStyle} disabled={isLocked} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Purpose of Visit</label>
+                        <input type="text" id="detail-purpose" defaultValue={bkg.purpose || ''} style={inputStyle} disabled={isLocked} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Room Type</label>
+                        <input type="text" id="detail-roomtype" defaultValue={bkg.roomType} style={inputStyle} disabled={isLocked} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Room Number</label>
+                        <input type="text" id="detail-roomnum" defaultValue={bkg.roomNumber || ''} style={inputStyle} disabled={isLocked} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Amount (₹)</label>
+                        <input type="number" id="detail-amount" defaultValue={bkg.amount} style={inputStyle} disabled={isLocked} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Check-in Date</label>
+                        <input type="date" id="detail-checkin" defaultValue={bkg.checkInDate} style={inputStyle} disabled={isLocked} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Check-out Date</label>
+                        <input type="date" id="detail-checkout" defaultValue={bkg.checkOutDate} style={inputStyle} disabled={isLocked} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Company Name</label>
+                        <input type="text" id="detail-company" defaultValue={bkg.companyName || ''} style={inputStyle} disabled={isLocked} />
+                      </div>
+                      <div>
+                        <label style={labelStyle}>Customer GSTIN</label>
+                        <input type="text" id="detail-gst" defaultValue={bkg.customerGst || ''} style={inputStyle} disabled={isLocked} />
+                      </div>
+                    </div>
+
+                    {bkg.actualCheckInTime && (
+                      <div style={{ marginTop: 12, padding: 10, background: 'rgba(79, 70, 229, 0.05)', borderRadius: 8, fontSize: 12, color: 'var(--text-muted)' }}>
+                        🕐 Checked-in: {bkg.actualCheckInTime}
+                        {bkg.actualCheckOutTime && <span style={{ marginLeft: 16 }}>🕐 Checked-out: {bkg.actualCheckOutTime}</span>}
+                      </div>
+                    )}
+
+                    {!isLocked && (
+                      <button className="btn primary" style={{ width: '100%', justifyContent: 'center', marginTop: 16 }} onClick={async () => {
+                        const name = (document.getElementById('detail-name') as HTMLInputElement).value;
+                        const mob = (document.getElementById('detail-mobile') as HTMLInputElement).value;
+                        const idp = (document.getElementById('detail-idproof') as HTMLInputElement).value;
+                        const addr = (document.getElementById('detail-address') as HTMLInputElement).value;
+                        const purp = (document.getElementById('detail-purpose') as HTMLInputElement).value;
+                        const rType = (document.getElementById('detail-roomtype') as HTMLInputElement).value;
+                        const rNum = (document.getElementById('detail-roomnum') as HTMLInputElement).value;
+                        const amt = parseFloat((document.getElementById('detail-amount') as HTMLInputElement).value);
+                        const ci = (document.getElementById('detail-checkin') as HTMLInputElement).value;
+                        const co = (document.getElementById('detail-checkout') as HTMLInputElement).value;
+                        const comp = (document.getElementById('detail-company') as HTMLInputElement).value;
+                        const gst = (document.getElementById('detail-gst') as HTMLInputElement).value;
+
+                        const { error } = await supabase.from('bookings').update({
+                          guest_name: name,
+                          mobile: mob,
+                          id_proof: idp,
+                          address: addr,
+                          purpose: purp,
+                          room_type: rType,
+                          room_number: rNum,
+                          amount: amt,
+                          check_in_date: ci,
+                          check_out_date: co,
+                          company_name: comp,
+                          customer_gst: gst
+                        }).eq('custom_id', bkg.id).eq('hotel_id', hotelId);
+
+                        if (error) return setToast(`❌ Update Failed: ${error.message}`);
+
+                        setGlobalBookings(prev => prev.map(b => b.id === bkg.id ? {
+                          ...b,
+                          guestName: name, mobile: mob, idProof: idp, address: addr, purpose: purp,
+                          roomType: rType, roomNumber: rNum, amount: amt,
+                          checkInDate: ci, checkOutDate: co, dates: `${ci} - ${co}`,
+                          companyName: comp, customerGst: gst
+                        } : b));
+                        setToast('✅ Booking updated successfully!');
+                        closeModals();
+                      }}>💾 Save Changes</button>
+                    )}
+                  </>
+                );
+              })()}
               {modalType === 'checkout-details' && (() => {
                 const bkg = globalBookings.find(b => b.id === checkoutBkgId);
                 if (!bkg) return null;
