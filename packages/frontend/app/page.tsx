@@ -1732,7 +1732,7 @@ export default function Dashboard() {
                               const cat = getAvailableCategories().find(c => c.name === selectedCatName);
                               const max = cat ? cat.available : 0;
                               if (max === 0) return <option value="0">0</option>;
-                              const opts = [];
+                              const opts: React.ReactNode[] = [];
                               for (let i = 1; i <= max; i++) {
                                 opts.push(<option key={i} value={i}>{i}</option>);
                               }

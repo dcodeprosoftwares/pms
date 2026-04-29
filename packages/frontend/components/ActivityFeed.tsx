@@ -5,9 +5,18 @@ interface ActivityFeedProps {
   rooms?: any[];
 }
 
+interface Activity {
+  type: string;
+  title: string;
+  sub: string;
+  time: string;
+  icon: string;
+  rawTime: string;
+}
+
 export default function ActivityFeed({ bookings = [], rooms = [] }: ActivityFeedProps) {
   // Synthesize activities from state
-  const activities = [];
+  const activities: Activity[] = [];
 
   bookings.forEach(b => {
     // Check-outs
