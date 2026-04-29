@@ -103,12 +103,18 @@ function GuestPortalContent() {
   };
 
   const loadAvailableRooms = async (category: string) => {
-    const { data: rms } = await supabase.from('rooms')
-      .select('*')
-      .eq('hotel_id', hotelId)
-      .eq('type', category)
-      .eq('status', 'CLEAN');
-    setAvailableRooms(rms || []);
+    try {
+      const { data: rms, error: rErr } = await supabase.from('rooms')
+        .select('*')
+        .eq('hotel_id', hotelId)
+        .eq('type', category.trim())
+        .in('status', ['CLEAN', 'INSPECTED']);
+      
+      if (rErr) throw rErr;
+      setAvailableRooms(rms || []);
+    } catch (err: any) {
+      setError(`Rooms Error: ${err.message}`);
+    }
   };
 
   const handleCheckInSearch = async () => {
