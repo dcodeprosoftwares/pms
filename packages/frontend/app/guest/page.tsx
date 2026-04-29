@@ -12,7 +12,7 @@ function GuestPortalContent() {
   const [hotel, setHotel] = useState<any>(null);
   const [categories, setCategories] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [step, setStep] = useState(1); // 1: Form, 2: Success/Checkin, 3: Final
+  const [step, setStep] = useState(type === 'checkin' ? 1 : 1); 
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
@@ -33,19 +33,27 @@ function GuestPortalContent() {
     if (!hotelId) return;
 
     const loadHotel = async () => {
-      const { data: h } = await supabase.from('hotels').select('*').eq('id', hotelId).single();
-      if (h) {
-        setHotel(h);
-        const { data: cats } = await supabase.from('room_categories').select('*').eq('hotel_id', hotelId);
-        setCategories(cats || []);
+      try {
+        const { data: h, error: hErr } = await supabase.from('hotels').select('*').eq('id', hotelId).single();
+        if (hErr) throw hErr;
+        if (h) {
+          setHotel(h);
+          const { data: cats } = await supabase.from('room_categories').select('*').eq('hotel_id', hotelId);
+          setCategories(cats || []);
+        }
+      } catch (err: any) {
+        console.error("Portal Load Error:", err);
+        setError(`Portal Error: ${err.message || 'Hotel not found'}`);
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
 
     loadHotel();
   }, [hotelId]);
 
   const handleReserve = async () => {
+    setError('');
     if (!guestName || !mobile || !selectedCat || !checkInDate || !checkOutDate) {
       return setError('Please fill all required fields');
     }
@@ -55,26 +63,28 @@ function GuestPortalContent() {
 
     const bkgId = `GUEST-${Math.floor(Math.random() * 90000) + 10000}`;
     
-    const { data, error: bError } = await supabase.from('bookings').insert([{
-      hotel_id: hotelId,
-      custom_id: bkgId,
-      guest_name: guestName,
-      mobile: mobile,
-      email: email,
-      room_type: selectedCat,
-      check_in_date: checkInDate,
-      check_out_date: checkOutDate,
-      amount: cat.base_rate,
-      status: 'CONFIRMED',
-      source: 'Guest Portal'
-    }]).select().single();
+    try {
+      const { data, error: bError } = await supabase.from('bookings').insert([{
+        hotel_id: hotelId,
+        custom_id: bkgId,
+        guest_name: guestName,
+        mobile: mobile,
+        email: email,
+        room_type: selectedCat,
+        check_in_date: checkInDate,
+        check_out_date: checkOutDate,
+        amount: cat.base_rate,
+        status: 'CONFIRMED',
+        source: 'Guest Portal'
+      }]).select().single();
 
-    if (bError) {
-      setError(bError.message);
-    } else {
+      if (bError) throw bError;
+      
       setBookingId(bkgId);
       setStep(2);
       loadAvailableRooms(selectedCat);
+    } catch (err: any) {
+      setError(`Reservation Failed: ${err.message}`);
     }
   };
 
@@ -84,52 +94,65 @@ function GuestPortalContent() {
       .eq('hotel_id', hotelId)
       .eq('status', 'CLEAN');
     
-    // In a real app, we'd filter by category too, but for now we'll show all clean rooms
     setAvailableRooms(rms || []);
   };
 
   const handleCheckInSearch = async () => {
-    const { data: bkg, error: bError } = await supabase.from('bookings')
-      .select('*')
-      .eq('hotel_id', hotelId)
-      .eq('custom_id', searchBkgId.toUpperCase())
-      .single();
+    setError('');
+    try {
+      const { data: bkg, error: bError } = await supabase.from('bookings')
+        .select('*')
+        .eq('hotel_id', hotelId)
+        .eq('custom_id', searchBkgId.toUpperCase())
+        .maybeSingle();
 
-    if (bError || !bkg) {
-      return setError('Booking ID not found');
+      if (bError) throw bError;
+      if (!bkg) return setError('Booking ID not found');
+
+      if (bkg.status !== 'CONFIRMED') {
+        return setError('This booking is already checked in or cancelled');
+      }
+
+      setBookingId(bkg.custom_id);
+      setGuestName(bkg.guest_name);
+      setStep(2);
+      loadAvailableRooms(bkg.room_type);
+    } catch (err: any) {
+      setError(`Search Failed: ${err.message}`);
     }
-
-    if (bkg.status !== 'CONFIRMED') {
-      return setError('This booking is already checked in or cancelled');
-    }
-
-    setBookingId(bkg.custom_id);
-    setGuestName(bkg.guest_name);
-    setStep(2);
-    loadAvailableRooms(bkg.room_type);
   };
 
   const finishCheckIn = async (roomId: string, roomNum: string) => {
+    setError('');
     const now = new Date().toLocaleString('en-IN');
     
-    // Update Booking
-    await supabase.from('bookings').update({
-      status: 'CHECKED_IN',
-      room_number: roomNum,
-      actual_check_in_time: now
-    }).eq('custom_id', bookingId).eq('hotel_id', hotelId);
+    try {
+      // Update Booking
+      const { error: bErr } = await supabase.from('bookings').update({
+        status: 'CHECKED_IN',
+        room_number: roomNum,
+        actual_check_in_time: now
+      }).eq('custom_id', bookingId).eq('hotel_id', hotelId);
 
-    // Update Room
-    await supabase.from('rooms').update({
-      status: 'OCCUPIED',
-      current_guest: guestName
-    }).eq('id', roomId);
+      if (bErr) throw bErr;
 
-    setSelectedRoom(roomNum);
-    setStep(3);
+      // Update Room
+      const { error: rErr } = await supabase.from('rooms').update({
+        status: 'OCCUPIED',
+        current_guest: guestName
+      }).eq('id', roomId);
+
+      if (rErr) throw rErr;
+
+      setSelectedRoom(roomNum);
+      setStep(3);
+    } catch (err: any) {
+      setError(`Check-in Failed: ${err.message}`);
+    }
   };
 
   if (loading) return <div className="portal-loader">Loading Guest Portal...</div>;
+  if (!hotel && error) return <div className="portal-error">{error}</div>;
   if (!hotel) return <div className="portal-error">Invalid Hotel ID</div>;
 
   return (
@@ -178,6 +201,7 @@ function GuestPortalContent() {
                   value={searchBkgId} 
                   onChange={e => setSearchBkgId(e.target.value)}
                   className="search-input"
+                  style={{ textTransform: 'uppercase' }}
                 />
                 {error && <div className="error-msg">{error}</div>}
                 <button className="submit-btn" onClick={handleCheckInSearch}>Find Booking</button>
@@ -189,13 +213,14 @@ function GuestPortalContent() {
         {step === 2 && (
           <div className="card animate-fade-in">
             <div className="success-badge">✅</div>
-            <h2>Booking Confirmed!</h2>
+            <h2>Booking Found!</h2>
             <div className="bkg-badge">ID: {bookingId}</div>
             
-            <hr />
+            <hr style={{ margin: '20px 0', opacity: 0.1 }} />
             
             <h3>Select Your Room</h3>
             <p>Choose an available room to complete check-in</p>
+            {error && <div className="error-msg" style={{ marginBottom: 12 }}>{error}</div>}
             <div className="room-selection-grid">
               {availableRooms.length === 0 ? (
                 <p className="no-rooms">No rooms currently available. Please see reception.</p>
@@ -221,7 +246,7 @@ function GuestPortalContent() {
             <div className="notification-box">
               📢 Please collect the key of selected room <strong>{selectedRoom}</strong> from reception.
             </div>
-            
+
             {(hotel.wifi_id || hotel.wifi_password) && (
               <div className="wifi-box">
                 <div style={{ fontWeight: 700, marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -244,16 +269,6 @@ function GuestPortalContent() {
       </main>
 
       <style jsx>{`
-        /* ... existing styles ... */
-        .wifi-box {
-          background: #f0f9ff;
-          border: 1px solid #bae6fd;
-          padding: 16px;
-          border-radius: 12px;
-          color: #0369a1;
-          font-size: 14px;
-          margin-bottom: 20px;
-        }
         .guest-portal {
           min-height: 100vh;
           background: #f8fafc;
@@ -348,6 +363,15 @@ function GuestPortalContent() {
           font-size: 14px;
           line-height: 1.5;
           margin: 20px 0;
+        }
+        .wifi-box {
+          background: #f0f9ff;
+          border: 1px solid #bae6fd;
+          padding: 16px;
+          border-radius: 12px;
+          color: #0369a1;
+          font-size: 14px;
+          margin-bottom: 20px;
         }
         .error-msg { color: #ef4444; font-size: 13px; font-weight: 600; margin-top: 12px; text-align: center; }
         .animate-fade-in { animation: fadeIn 0.5s ease-out; }
