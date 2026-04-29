@@ -326,7 +326,7 @@ export default function Dashboard() {
           currentBookingNumber: currentHotel.current_booking_number || 1001,
           managerName: currentHotel.manager_name || '',
           managerTitle: currentHotel.manager_title || 'Property Manager',
-          adminPassword: '',
+          adminPassword: currentHotel.admin_password || '',
           wifiId: currentHotel.wifi_id || '',
           wifiPassword: currentHotel.wifi_password || ''
         });
@@ -1611,6 +1611,7 @@ export default function Dashboard() {
                       invoice_prefix: invPre, current_invoice_number: invNum,
                       booking_prefix: bkgPre, current_booking_number: bkgNum,
                       wifi_id: wId, wifi_password: wPwd,
+                      admin_password: pwd,
                       gst_percent: gst, gst_included: inc,
                       manager_name: mName, manager_title: mTitle
                     }).eq('id', hotelId);
