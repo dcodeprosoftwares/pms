@@ -155,23 +155,23 @@ export default function Dashboard() {
   const [isLoaded, setIsLoaded] = useState(false);
 
   const [hotelSettings, setHotelSettings] = useState({
-    name: 'WEAZY HOTELS',
-    location: '123 Hospitality Avenue, Tech District',
-    mobile: '+91 98765 43210',
-    email: 'contact@weazy.com',
-    website: 'www.weazyhotels.com',
+    name: 'Loading Property...',
+    location: '',
+    mobile: '',
+    email: '',
+    website: '',
     currency: '₹',
     checkInTime: '12:00 PM',
     checkOutTime: '11:00 AM',
-    taxNumber: '27AAAAA0000A1Z5',
-    gstPercent: 18,
-    gstIncluded: false,
+    taxNumber: '',
+    gstPercent: 12,
+    gstIncluded: true,
     invoicePrefix: 'INV-',
-    currentInvoiceNumber: 1001,
+    currentInvoiceNumber: 1,
     bookingPrefix: 'BKG-',
-    currentBookingNumber: 1001,
-    managerName: 'Deepak Kumar',
-    managerTitle: 'Front Desk Manager',
+    currentBookingNumber: 1,
+    managerName: '',
+    managerTitle: 'Property Manager',
     adminPassword: ''
   });
 
@@ -289,9 +289,9 @@ export default function Dashboard() {
       if (!currentHotel) {
         const { data: newHotel, error: cError } = await supabase.from('hotels').insert([{ 
           owner_id: user.id,
-          name: 'NEW WEAZY PROPERTY',
+          name: user.user_metadata?.property_name || 'NEW WEAZY PROPERTY',
           location: 'Update your location in Settings',
-          mobile: user.phone || 'Update mobile',
+          mobile: user.user_metadata?.mobile || user.phone || 'Update mobile',
           email: user.email
         }]).select().single();
         currentHotel = newHotel;
