@@ -237,6 +237,7 @@ export default function Dashboard() {
     if (bError) return setToast(`❌ Checkout Failed: ${bError.message}`);
 
     // Update Sequence
+    if (!hotelId) return;
     await supabase.from('hotels').update({ current_invoice_number: newInvoiceNumber + 1 }).eq('id', hotelId);
 
     // Free up Rooms
@@ -1514,6 +1515,8 @@ export default function Dashboard() {
                     const mName = (document.getElementById('set-manager-name') as HTMLInputElement)?.value || hotelSettings.managerName;
                     const mTitle = (document.getElementById('set-manager-title') as HTMLInputElement)?.value || hotelSettings.managerTitle;
 
+                    if (!hotelId) return setToast('❌ Error: No property loaded. Please refresh.');
+
                     // Supabase Update
                     const { error } = await supabase.from('hotels').update({
                       name, website: web, email, mobile: mob, location: loc,
@@ -1830,7 +1833,9 @@ export default function Dashboard() {
                     if (bError) return setToast(`❌ Cloud Save Failed: ${bError.message}`);
 
                     // Update Sequence
-                    await supabase.from('hotels').update({ current_booking_number: nextBookingNum }).eq('id', hotelId);
+                    if (hotelId) {
+                      await supabase.from('hotels').update({ current_booking_number: nextBookingNum }).eq('id', hotelId);
+                    }
 
                     setGlobalBookings(prev => [...dbBookings.map(b => ({
                       id: b.custom_id,
