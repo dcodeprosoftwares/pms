@@ -1987,8 +1987,13 @@ export default function Dashboard() {
                   <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginTop: 12, marginBottom: 4 }}>Assign Physical Room</div>
                   <select id="checkin-room" style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)' }}>
                     <option value="">{checkinBkg ? `-- Select Available ${checkinBkg.roomType} --` : '-- Select Available Room --'}</option>
-                    {globalRooms.filter(r => r.status !== 'OCCUPIED' && r.status !== 'OOO' && (!checkinBkg || r.type === checkinBkg.roomType)).map(r => (
-                      <option key={r.id} value={`${r.type}|${r.number}`}>Room {r.number} - {r.status}</option>
+                    {/* First priority: Rooms of the same category */}
+                    {globalRooms.filter(r => r.status !== 'OCCUPIED' && r.status !== 'OOO' && (checkinBkg && r.type === checkinBkg.roomType)).map(r => (
+                      <option key={r.id} value={`${r.type}|${r.number}`} style={{ fontWeight: 700 }}>[Recommended] Room {r.number} - {r.status}</option>
+                    ))}
+                    {/* Second priority: All other available rooms */}
+                    {globalRooms.filter(r => r.status !== 'OCCUPIED' && r.status !== 'OOO' && (!checkinBkg || r.type !== checkinBkg.roomType)).map(r => (
+                      <option key={r.id} value={`${r.type}|${r.number}`}>Room {r.number} ({r.type}) - {r.status}</option>
                     ))}
                   </select>
 
