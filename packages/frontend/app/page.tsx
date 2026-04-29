@@ -502,7 +502,7 @@ export default function Dashboard() {
                 const guests = Object.values(guestMap).sort((a, b) => b.totalVisits - a.totalVisits);
                 const filteredGuests = guests.filter(g => {
                   const s = guestSearch.toLowerCase();
-                  return g.name.toLowerCase().includes(s) || g.mobile.includes(s);
+                  return g.name.toLowerCase().includes(s) || (g.mobile && g.mobile.includes(s));
                 });
 
                 return (
@@ -913,7 +913,7 @@ export default function Dashboard() {
                         const s = bookingSearch.toLowerCase();
                         return b.guestName.toLowerCase().includes(s) || 
                                b.id.toLowerCase().includes(s) || 
-                               b.mobile.includes(s);
+                               (b.mobile && b.mobile.includes(s));
                       }).map(b => (
                         <tr key={b.id}>
                           <td style={{ fontFamily: 'JetBrains Mono, monospace' }}>{b.id}</td>
