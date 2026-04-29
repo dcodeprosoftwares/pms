@@ -100,11 +100,19 @@ function GuestPortalContent() {
   };
 
   const loadAvailableRooms = async (category: string) => {
-    const { data: rms } = await supabase.from('rooms')
-      .select('*')
-      .eq('hotel_id', hotelId)
-      .eq('status', 'CLEAN');
-    setAvailableRooms(rms || []);
+    try {
+      const { data: rms, error: rErr } = await supabase.from('rooms')
+        .select('*')
+        .eq('hotel_id', hotelId)
+        .eq('type', category) // Must match the booked category
+        .eq('status', 'CLEAN');
+      
+      if (rErr) throw rErr;
+      setAvailableRooms(rms || []);
+    } catch (err: any) {
+      console.error("Room Load Error:", err);
+      setError(`Could not load rooms: ${err.message}`);
+    }
   };
 
   const handleCheckInSearch = async () => {
