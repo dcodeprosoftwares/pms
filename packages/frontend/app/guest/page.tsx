@@ -16,6 +16,7 @@ function GuestPortalContent() {
   const [bookingId, setBookingId] = useState<string | null>(null);
   const [selectedRoom, setSelectedRoom] = useState<any>(null);
   const [availableRooms, setAvailableRooms] = useState<any[]>([]);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   // Form State
   const [guestName, setGuestName] = useState('');
@@ -63,6 +64,7 @@ function GuestPortalContent() {
 
     const bkgId = `GUEST-${Math.floor(Math.random() * 90000) + 10000}`;
     
+    setIsProcessing(true);
     try {
       const { data, error: bError } = await supabase.from('bookings').insert([{
         hotel_id: hotelId,
@@ -85,6 +87,8 @@ function GuestPortalContent() {
       loadAvailableRooms(selectedCat);
     } catch (err: any) {
       setError(`Reservation Failed: ${err.message}`);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
@@ -99,6 +103,7 @@ function GuestPortalContent() {
 
   const handleCheckInSearch = async () => {
     setError('');
+    setIsProcessing(true);
     try {
       const { data: bkg, error: bError } = await supabase.from('bookings')
         .select('*')
@@ -119,14 +124,20 @@ function GuestPortalContent() {
       loadAvailableRooms(bkg.room_type);
     } catch (err: any) {
       setError(`Search Failed: ${err.message}`);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   const finishCheckIn = async (roomId: string, roomNum: string) => {
     setError('');
+    setIsProcessing(true);
     const now = new Date().toLocaleString('en-IN');
     
     try {
+      // Small artificial delay for UX feel
+      await new Promise(r => setTimeout(r, 1500));
+
       // Update Booking
       const { error: bErr } = await supabase.from('bookings').update({
         status: 'CHECKED_IN',
@@ -148,10 +159,36 @@ function GuestPortalContent() {
       setStep(3);
     } catch (err: any) {
       setError(`Check-in Failed: ${err.message}`);
+    } finally {
+      setIsProcessing(false);
     }
   };
 
   if (loading) return <div className="portal-loader">Loading Guest Portal...</div>;
+  
+  if (isProcessing) {
+    return (
+      <div className="guest-portal flex-center-vh">
+        <div className="card text-center animate-fade-in">
+          <div className="spinner-large"></div>
+          <h2 style={{ marginTop: 24 }}>Processing...</h2>
+          <p>Finalizing your stay details. Please wait.</p>
+        </div>
+        <style jsx>{`
+          .flex-center-vh { height: 100vh; display: flex; align-items: center; justify-content: center; }
+          .spinner-large {
+            width: 50px; height: 50px;
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #6366f1;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto;
+          }
+          @keyframes spin { to { transform: rotate(360deg); } }
+        `}</style>
+      </div>
+    );
+  }
   if (!hotel && error) return <div className="portal-error">{error}</div>;
   if (!hotel) return <div className="portal-error">Invalid Hotel ID</div>;
 
