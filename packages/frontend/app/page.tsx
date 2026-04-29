@@ -438,7 +438,25 @@ export default function Dashboard() {
               <div className="layout-grid">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
                   <ArrivalsTable bookings={globalBookings} />
-                  <RoomMatrix rooms={globalRooms} onUpdateRooms={setGlobalRooms} adminPassword={hotelSettings.adminPassword} />
+                  <RoomMatrix 
+                    rooms={globalRooms} 
+                    onUpdateRooms={async (updatedRooms) => {
+                      // Find which room changed
+                      const changedRoom = updatedRooms.find((r, i) => r.status !== globalRooms[i]?.status);
+                      if (changedRoom) {
+                        const { error } = await supabase.from('rooms')
+                          .update({ status: changedRoom.status })
+                          .eq('id', changedRoom.id);
+                        
+                        if (error) {
+                          setToast(`❌ Failed to update room: ${error.message}`);
+                          return;
+                        }
+                      }
+                      setGlobalRooms(updatedRooms);
+                    }} 
+                    adminPassword={hotelSettings.adminPassword} 
+                  />
                 </div>
                 <div>
                   <ActivityFeed bookings={globalBookings} rooms={globalRooms} />
