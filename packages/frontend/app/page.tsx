@@ -347,7 +347,7 @@ export default function Dashboard() {
           setGlobalRooms(rms.map(r => ({
             id: r.id,
             number: r.number,
-            type: r.category || '', // Correctly mapping 'category' from DB
+            type: r.room_type || '', // Use the new column name 'room_type'
             status: r.status as any,
             guest: r.current_guest || undefined,
             floor: 1
@@ -1721,6 +1721,7 @@ export default function Dashboard() {
                     const { error } = await supabase.from('rooms').insert({
                       hotel_id: hotelId,
                       number: num,
+                      room_type: cat, // Now properly saving the category!
                       status: 'CLEAN'
                     });
 
