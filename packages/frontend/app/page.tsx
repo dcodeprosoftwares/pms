@@ -1142,9 +1142,12 @@ export default function Dashboard() {
                             <button 
                               className="btn" 
                               style={{ color: '#ef4444', borderColor: '#fee2e2', background: '#fef2f2', padding: '6px 12px', fontSize: 12 }}
-                              onClick={() => {
+                              onClick={async () => {
+                                if (!window.confirm(`Are you sure you want to delete category '${cat.name}'?`)) return;
+                                const { error } = await supabase.from('room_categories').delete().eq('hotel_id', hotelId).eq('name', cat.name);
+                                if (error) return setToast(`❌ Delete Failed: ${error.message}`);
                                 setRoomCategories(prev => prev.filter(c => c.name !== cat.name));
-                                setToast(`🗑️ Category '${cat.name}' deleted.`);
+                                setToast(`🗑️ Category '${cat.name}' deleted permanently.`);
                               }}
                             >
                               Delete
@@ -1186,9 +1189,12 @@ export default function Dashboard() {
                             <button 
                               className="btn" 
                               style={{ color: '#ef4444', borderColor: '#fee2e2', background: '#fef2f2', padding: '6px 12px', fontSize: 12 }}
-                              onClick={() => {
+                              onClick={async () => {
+                                if (!window.confirm(`Delete Room ${room.number}?`)) return;
+                                const { error } = await supabase.from('rooms').delete().eq('hotel_id', hotelId).eq('number', room.number);
+                                if (error) return setToast(`❌ Delete Failed: ${error.message}`);
                                 setGlobalRooms(prev => prev.filter(r => r.id !== room.id));
-                                setToast(`🗑️ Room ${room.number} deleted.`);
+                                setToast(`🗑️ Room ${room.number} deleted permanently.`);
                               }}
                             >
                               Delete
