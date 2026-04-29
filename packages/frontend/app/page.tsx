@@ -15,7 +15,7 @@ import Auth from '@/components/Auth';
 
 import { RoomData, RoomStatus } from '@/components/RoomMatrix';
 
-export type ModalType = 'reservation' | 'checkin' | 'audit' | 'pos' | 'add-category' | 'add-room' | 'checkout-details' | 'record-expense' | 'add-expense-type' | 'add-inv-item' | 'add-vendor' | 'record-inv-transaction' | null;
+export type ModalType = 'reservation' | 'checkin' | 'audit' | 'pos' | 'add-category' | 'add-room' | 'checkout-details' | 'record-expense' | 'add-expense-type' | 'add-inv-item' | 'add-vendor' | 'record-inv-transaction' | 'settings' | null;
 
 interface RoomCategory {
   name: string;

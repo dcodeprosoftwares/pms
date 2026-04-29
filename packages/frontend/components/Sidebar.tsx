@@ -5,7 +5,7 @@ type View = 'dashboard' | 'tape-chart' | 'bookings' | 'housekeeping' | 'billing'
 interface SidebarProps {
   activeView: View;
   onNavigate: (v: View) => void;
-  onOpenModal: (type: 'audit' | 'pos') => void;
+  onOpenModal: (type: any) => void;
   onLogout?: () => void;
   hotelName?: string;
   managerName?: string;

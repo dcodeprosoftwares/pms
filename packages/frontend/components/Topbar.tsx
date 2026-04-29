@@ -1,7 +1,7 @@
 'use client';
 
 interface TopbarProps {
-  onOpenModal: (type: 'reservation' | 'checkin' | 'audit' | 'settings' | 'pos') => void;
+  onOpenModal: (type: any) => void;
   hotelName: string;
 }
 
