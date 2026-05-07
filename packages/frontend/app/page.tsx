@@ -49,6 +49,7 @@ export interface BookingData {
   folioId?: string;
   totalGuests?: number;
   checkedInCount?: number;
+  guestsInfo?: any[];
 }
 
 export interface ExpenseData {
@@ -396,7 +397,8 @@ export default function Dashboard() {
             folioId: b.folio_id || undefined,
             idProof: b.id_proof || undefined,
             address: b.address || undefined,
-            purpose: b.purpose || undefined
+            purpose: b.purpose || undefined,
+            guestsInfo: b.guests_info || undefined
           })));
         }
 
@@ -2583,6 +2585,25 @@ export default function Dashboard() {
                         <input type="text" id="detail-gst" defaultValue={bkg.customerGst || ''} style={inputStyle} disabled={isLocked} />
                       </div>
                     </div>
+
+                    {bkg.guestsInfo && bkg.guestsInfo.length > 0 && (
+                      <div style={{ marginTop: 16 }}>
+                        <h4 style={{ fontSize: 13, color: 'var(--text-main)', marginBottom: 8, fontWeight: 700 }}>Checked-in Guests & ID Proofs</h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                          {bkg.guestsInfo.map((g: any, i: number) => (
+                            <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-elevated)', padding: '10px 12px', borderRadius: 8, border: '1px solid var(--border-subtle)' }}>
+                              <div>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-main)' }}>{g.name} <span style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 400 }}>({g.gender})</span></div>
+                                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{g.idType}: {g.idNumber}</div>
+                              </div>
+                              {g.idProofUrl && (
+                                <a href={g.idProofUrl} target="_blank" rel="noreferrer" style={{ fontSize: 12, fontWeight: 600, color: 'var(--accent-primary)', padding: '6px 12px', background: 'rgba(79, 70, 229, 0.1)', borderRadius: 6, textDecoration: 'none' }}>View ID</a>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
 
                     {bkg.actualCheckInTime && (
                       <div style={{ marginTop: 12, padding: 10, background: 'rgba(79, 70, 229, 0.05)', borderRadius: 8, fontSize: 12, color: 'var(--text-muted)' }}>
