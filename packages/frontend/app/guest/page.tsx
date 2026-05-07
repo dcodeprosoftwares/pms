@@ -350,8 +350,7 @@ function GuestPortalContent() {
         )}
 
         {/* STEP 2: Guest Details (same fields as admin Quick Check-in) */}
-        {!isProcessing && step === 2 && (
-          <div className="card animate-fade-in">
+        <div className="card animate-fade-in" style={{ display: !isProcessing && step === 2 ? 'block' : 'none' }}>
             <div className="success-badge">✅</div>
             <h2>Booking Confirmed!</h2>
             <div className="bkg-badge">ID: {bookingId}</div>
@@ -440,7 +439,6 @@ function GuestPortalContent() {
             {error && <div className="error-msg">{error}</div>}
             <button className="submit-btn" onClick={handleGuestDetailsSubmit}>Continue to Room Selection →</button>
           </div>
-        )}
 
         {/* STEP 3: Room Selection */}
         {!isProcessing && step === 3 && (
