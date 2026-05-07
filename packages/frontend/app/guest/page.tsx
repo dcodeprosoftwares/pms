@@ -186,7 +186,11 @@ function GuestPortalContent() {
     const guestsInfo: any[] = [];
     for (let i = 0; i < gNames.length; i++) {
       const name = gNames[i]?.value;
-      if (!name) continue;
+      if (!name) {
+        setError(`Please enter the name for Guest ${i + 1}`);
+        setIsProcessing(false);
+        return;
+      }
 
       const idFile = gIdFiles[i]?.files?.[0];
       if (!idFile) {
@@ -392,7 +396,7 @@ function GuestPortalContent() {
                     const row = document.createElement('div');
                     row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;padding:10px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;';
                     row.innerHTML = `
-                      <input type="text" class="g-name" placeholder="Guest ${i+1} Name" style="padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:14px;grid-column:1/-1" />
+                      <input type="text" class="g-name" placeholder="Guest ${i+1} Name" value="\${i === 0 ? bookingRecord?.guest_name || '' : ''}" style="padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:14px;grid-column:1/-1" />
                       <select class="g-gender" style="padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:14px">
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
@@ -414,7 +418,7 @@ function GuestPortalContent() {
               </div>
               <div id="guest-companion-rows">
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, padding: 10, background: '#f8fafc', borderRadius: 10, border: '1px solid #e2e8f0' }}>
-                  <input type="text" className="g-name" placeholder="Guest 1 Name" style={{ padding: 10, borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 14, gridColumn: '1 / -1' }} />
+                  <input type="text" className="g-name" defaultValue={bookingRecord?.guest_name || ''} placeholder="Guest 1 Name" style={{ padding: 10, borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 14, gridColumn: '1 / -1' }} />
                   <select className="g-gender" style={{ padding: 10, borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 14 }}>
                     <option value="Male">Male</option>
                     <option value="Female">Female</option>

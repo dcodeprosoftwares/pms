@@ -2119,7 +2119,7 @@ export default function Dashboard() {
                               const row = document.createElement('div');
                               row.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1.5fr 2fr;gap:8px;margin-bottom:8px;align-items:center;';
                               row.innerHTML = `
-                                <input type="text" class="guest-name" placeholder="Guest ${i + 1} Name" style="padding:8px 10px;border-radius:6px;border:1px solid var(--border-subtle);background:var(--bg-elevated);color:var(--text-main);font-size:12px" />
+                                <input type="text" class="guest-name" placeholder="Guest ${i + 1} Name" value="\${i === 0 ? (document.getElementById('checkin-bkg') as HTMLSelectElement)?.options[(document.getElementById('checkin-bkg') as HTMLSelectElement)?.selectedIndex]?.text?.split(' - ')[1]?.split(' (')[0] || '' : ''}" style="padding:8px 10px;border-radius:6px;border:1px solid var(--border-subtle);background:var(--bg-elevated);color:var(--text-main);font-size:12px" />
                                 <select class="guest-gender" style="padding:8px 6px;border-radius:6px;border:1px solid var(--border-subtle);background:var(--bg-elevated);color:var(--text-main);font-size:12px">
                                   <option value="Male">Male</option>
                                   <option value="Female">Female</option>
@@ -2149,7 +2149,7 @@ export default function Dashboard() {
                     </div>
                     <div id="guest-rows-container">
                       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1.5fr 2fr', gap: 8, marginBottom: 8 }}>
-                        <input type="text" className="guest-name" placeholder="Guest 1 Name" style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)', fontSize: 12 }} />
+                        <input type="text" className="guest-name" defaultValue={checkinBkg?.guestName || ''} placeholder="Guest 1 Name" style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)', fontSize: 12 }} />
                         <select className="guest-gender" style={{ padding: '8px 6px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)', fontSize: 12 }}>
                           <option value="Male">Male</option>
                           <option value="Female">Female</option>
@@ -2220,7 +2220,9 @@ export default function Dashboard() {
                     const guestsInfo: any[] = [];
                     for (let i = 0; i < guestNames.length; i++) {
                       const name = guestNames[i]?.value;
-                      if (!name) continue;
+                      if (!name) {
+                        return setToast(`❌ Please enter the name for Guest ${i + 1}`);
+                      }
 
                       const idFile = guestIdFiles[i]?.files?.[0];
                       if (!idFile) {
