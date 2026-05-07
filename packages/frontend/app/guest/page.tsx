@@ -396,7 +396,7 @@ function GuestPortalContent() {
                     const row = document.createElement('div');
                     row.style.cssText = 'display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;padding:10px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;';
                     row.innerHTML = `
-                      <input type="text" class="g-name" placeholder="Guest ${i+1} Name" value="\${i === 0 ? bookingRecord?.guest_name || '' : ''}" style="padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:14px;grid-column:1/-1" />
+                      <input type="text" class="g-name" placeholder="Guest ${i+1} Name" value="${i === 0 ? bookingRecord?.guest_name || '' : ''}" style="padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:14px;grid-column:1/-1" />
                       <select class="g-gender" style="padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:14px">
                         <option value="Male">Male</option>
                         <option value="Female">Female</option>
