@@ -2115,11 +2115,14 @@ export default function Dashboard() {
                             const container = document.getElementById('guest-rows-container');
                             if (!container) return;
                             container.innerHTML = '';
+                            const checkinBkgSelect = document.getElementById('checkin-bkg') as HTMLSelectElement | null;
+                            const checkinBkgText = checkinBkgSelect?.options[checkinBkgSelect.selectedIndex]?.text || '';
+                            const primaryName = checkinBkgText.split(' - ')[1]?.split(' (')[0] || '';
                             for (let i = 0; i < count; i++) {
                               const row = document.createElement('div');
                               row.style.cssText = 'display:grid;grid-template-columns:2fr 1fr 1.5fr 2fr;gap:8px;margin-bottom:8px;align-items:center;';
                               row.innerHTML = `
-                                <input type="text" class="guest-name" placeholder="Guest ${i + 1} Name" value="${i === 0 ? (document.getElementById('checkin-bkg') as HTMLSelectElement)?.options[(document.getElementById('checkin-bkg') as HTMLSelectElement)?.selectedIndex]?.text?.split(' - ')[1]?.split(' (')[0] || '' : ''}" style="padding:8px 10px;border-radius:6px;border:1px solid var(--border-subtle);background:var(--bg-elevated);color:var(--text-main);font-size:12px" />
+                                <input type="text" class="guest-name" placeholder="Guest ${i + 1} Name" value="${i === 0 ? primaryName : ''}" style="padding:8px 10px;border-radius:6px;border:1px solid var(--border-subtle);background:var(--bg-elevated);color:var(--text-main);font-size:12px" />
                                 <select class="guest-gender" style="padding:8px 6px;border-radius:6px;border:1px solid var(--border-subtle);background:var(--bg-elevated);color:var(--text-main);font-size:12px">
                                   <option value="Male">Male</option>
                                   <option value="Female">Female</option>
