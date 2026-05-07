@@ -2217,7 +2217,7 @@ export default function Dashboard() {
                     const guestIdNums = document.querySelectorAll('.guest-id-num') as NodeListOf<HTMLInputElement>;
                     const guestIdFiles = document.querySelectorAll('.guest-id-file') as NodeListOf<HTMLInputElement>;
 
-                    const guestsInfo = [];
+                    const guestsInfo: any[] = [];
                     for (let i = 0; i < guestNames.length; i++) {
                       const name = guestNames[i]?.value;
                       if (!name) continue;
@@ -2269,7 +2269,7 @@ export default function Dashboard() {
                         amount_paid: newPaid,
                         payment_status: newPayStatus,
                         checked_in_count: newCheckedInCount,
-                        guests_info: [...(booking as any).guests_info || [], ...guestsInfo]
+                        guests_info: [...(booking.guestsInfo || []), ...guestsInfo]
                       })
                       .eq('custom_id', bkgId)
                       .eq('hotel_id', hotelId);
@@ -2291,7 +2291,8 @@ export default function Dashboard() {
                       purpose: purp,
                       amountPaid: newPaid,
                       paymentStatus: newPayStatus as any,
-                      checkedInCount: newCheckedInCount
+                      checkedInCount: newCheckedInCount,
+                      guestsInfo: [...(b.guestsInfo || []), ...guestsInfo]
                     } : b));
 
                     // Update Room

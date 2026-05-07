@@ -183,7 +183,7 @@ function GuestPortalContent() {
     const gIdNums = document.querySelectorAll('.g-id-num') as NodeListOf<HTMLInputElement>;
     const gIdFiles = document.querySelectorAll('.g-id-file') as NodeListOf<HTMLInputElement>;
 
-    const guestsInfo = [];
+    const guestsInfo: any[] = [];
     for (let i = 0; i < gNames.length; i++) {
       const name = gNames[i]?.value;
       if (!name) continue;
