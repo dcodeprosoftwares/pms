@@ -14,7 +14,7 @@ function createWindow() {
   });
 
   // Replace this with your actual Vercel URL
-  const APP_URL = 'https://pms-frontend-three.vercel.app/'; 
+  const APP_URL = 'https://pms-psi-one.vercel.app/'; 
 
   win.loadURL(APP_URL);
 

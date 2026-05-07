@@ -47,6 +47,8 @@ export interface BookingData {
   customerGst?: string;
   companyName?: string;
   folioId?: string;
+  totalGuests?: number;
+  checkedInCount?: number;
 }
 
 export interface ExpenseData {
@@ -110,6 +112,19 @@ export default function Dashboard() {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Persist active view
+  useEffect(() => {
+    const saved = localStorage.getItem('weazy_active_view');
+    if (saved) {
+      setActiveView(saved as any);
+    }
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem('weazy_active_view', activeView);
+  }, [activeView]);
+
   const [modalType, setModalType] = useState<ModalType>(null);
   const [toast, setToast] = useState<string | null>(null);
 
@@ -141,6 +156,7 @@ export default function Dashboard() {
   const [resCategorySelections, setResCategorySelections] = useState<Record<number, string>>({});
   const [checkoutBkgId, setCheckoutBkgId] = useState<string | null>(null);
   const [bookingSearch, setBookingSearch] = useState('');
+  const [bookingsPage, setBookingsPage] = useState(1);
   const [guestSearch, setGuestSearch] = useState('');
   const [selectedDetailBkg, setSelectedDetailBkg] = useState<string | null>(null);
 
@@ -356,7 +372,7 @@ export default function Dashboard() {
         }
 
         // 4. Fetch Bookings
-        const { data: bkgs } = await supabase.from('bookings').select('*').eq('hotel_id', currentHotel.id);
+        const { data: bkgs } = await supabase.from('bookings').select('*').eq('hotel_id', currentHotel.id).order('created_at', { ascending: false });
         if (bkgs) {
           setGlobalBookings(bkgs.map(b => ({
             id: b.custom_id,
@@ -372,6 +388,8 @@ export default function Dashboard() {
             amount: Number(b.amount),
             amountPaid: Number(b.amount_paid),
             status: b.status,
+            totalGuests: b.total_guests || 1,
+            checkedInCount: b.checked_in_count || 0,
             invoiceNumber: b.invoice_number || undefined,
             companyName: b.company_name || undefined,
             customerGst: b.customer_gst || undefined,
@@ -923,7 +941,7 @@ export default function Dashboard() {
                       type="text" 
                       placeholder="Search Name, ID or Mobile..." 
                       value={bookingSearch}
-                      onChange={(e) => setBookingSearch(e.target.value)}
+                      onChange={(e) => { setBookingSearch(e.target.value); setBookingsPage(1); }}
                       style={{ padding: '8px 12px 8px 36px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)', fontSize: 13, width: 260 }}
                     />
                   </div>
@@ -943,14 +961,21 @@ export default function Dashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {[...globalBookings].filter(b => {
-                        const s = bookingSearch.toLowerCase();
-                        return b.guestName.toLowerCase().includes(s) || 
-                               b.id.toLowerCase().includes(s) || 
-                               (b.mobile && b.mobile.includes(s));
-                      }).reverse().map((b, idx) => (
-                        <tr key={b.id}>
-                          <td style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: 12 }}>{idx + 1}</td>
+                      {(() => {
+                        const filteredBookings = globalBookings.filter(b => {
+                          const s = bookingSearch.toLowerCase();
+                          return b.guestName.toLowerCase().includes(s) || 
+                                 b.id.toLowerCase().includes(s) || 
+                                 (b.mobile && b.mobile.includes(s));
+                        });
+                        const ITEMS_PER_PAGE = 20;
+                        const paginatedBookings = filteredBookings.slice((bookingsPage - 1) * ITEMS_PER_PAGE, bookingsPage * ITEMS_PER_PAGE);
+                        
+                        return (
+                          <>
+                            {paginatedBookings.map((b, idx) => (
+                              <tr key={b.id}>
+                                <td style={{ fontWeight: 600, color: 'var(--text-muted)', fontSize: 12 }}>{(bookingsPage - 1) * ITEMS_PER_PAGE + idx + 1}</td>
                           <td style={{ fontFamily: 'JetBrains Mono, monospace', cursor: 'pointer', color: 'var(--accent-primary)', textDecoration: 'underline' }} onClick={() => { setSelectedDetailBkg(b.id); setModalType('booking-detail'); }}>{b.id}</td>
                           <td style={{ fontWeight: 600 }}>{b.guestName}</td>
                           <td>
@@ -1007,9 +1032,47 @@ export default function Dashboard() {
                             </div>
                           </td>
                         </tr>
-                      ))}
+                            ))}
+                          </>
+                        );
+                      })()}
                     </tbody>
                   </table>
+
+                  {(() => {
+                    const filteredLength = globalBookings.filter(b => {
+                      const s = bookingSearch.toLowerCase();
+                      return b.guestName.toLowerCase().includes(s) || 
+                             b.id.toLowerCase().includes(s) || 
+                             (b.mobile && b.mobile.includes(s));
+                    }).length;
+                    const totalPages = Math.max(1, Math.ceil(filteredLength / 20));
+                    
+                    if (totalPages <= 1) return null;
+                    return (
+                      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: 24, gap: 16 }}>
+                        <button 
+                          onClick={() => setBookingsPage(p => Math.max(1, p - 1))} 
+                          disabled={bookingsPage === 1}
+                          className="btn outline"
+                          style={{ padding: '6px 12px', background: 'var(--bg-elevated)', color: 'var(--text-main)', border: '1px solid var(--border-subtle)', opacity: bookingsPage === 1 ? 0.5 : 1, cursor: bookingsPage === 1 ? 'not-allowed' : 'pointer' }}
+                        >
+                          Previous
+                        </button>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)' }}>
+                          Page {bookingsPage} of {totalPages}
+                        </span>
+                        <button 
+                          onClick={() => setBookingsPage(p => Math.min(totalPages, p + 1))} 
+                          disabled={bookingsPage === totalPages}
+                          className="btn outline"
+                          style={{ padding: '6px 12px', background: 'var(--bg-elevated)', color: 'var(--text-main)', border: '1px solid var(--border-subtle)', opacity: bookingsPage === totalPages ? 0.5 : 1, cursor: bookingsPage === totalPages ? 'not-allowed' : 'pointer' }}
+                        >
+                          Next
+                        </button>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             </div>
@@ -1822,7 +1885,10 @@ export default function Dashboard() {
               {modalType === 'reservation' && (
                 <>
                   <input type="text" id="res-name" placeholder="Guest Full Name" style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)' }} />
-                  <input type="text" id="res-mobile" placeholder="Mobile Number" style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)', marginTop: 8 }} />
+                  <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
+                    <input type="text" id="res-mobile" placeholder="Mobile Number" style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)' }} />
+                    <input type="number" id="res-total-guests" placeholder="Total Number of Guests" min="1" defaultValue="1" style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)' }} />
+                  </div>
                   
                   <div style={{ display: 'flex', gap: 16, marginTop: 8 }}>
                     <input type="text" id="res-company" placeholder="Company Name (Optional)" style={{ flex: 1, padding: '10px 16px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)' }} />
@@ -1895,6 +1961,7 @@ export default function Dashboard() {
                   <button className="btn primary" style={{ width: '100%', justifyContent: 'center', marginTop: 16 }} onClick={async () => {
                     const name = (document.getElementById('res-name') as HTMLInputElement)?.value;
                     const mob = (document.getElementById('res-mobile') as HTMLInputElement)?.value;
+                    const totalGuests = parseInt((document.getElementById('res-total-guests') as HTMLInputElement)?.value || '1');
                     const company = (document.getElementById('res-company') as HTMLInputElement)?.value || '';
                     const gst = (document.getElementById('res-gst') as HTMLInputElement)?.value || '';
 
@@ -1941,6 +2008,8 @@ export default function Dashboard() {
                             amount_paid: 0,
                             payment_status: 'UNPAID',
                             status: 'CONFIRMED',
+                            total_guests: totalGuests,
+                            checked_in_count: 0,
                             folio_id: masterFolioId
                           });
                         }
@@ -1984,6 +2053,8 @@ export default function Dashboard() {
                       amount: b.amount,
                       amountPaid: b.amount_paid,
                       status: b.status,
+                      totalGuests: b.total_guests,
+                      checkedInCount: b.checked_in_count,
                       folioId: b.folio_id,
                       companyName: b.company_name,
                       customerGst: b.customer_gst
@@ -2006,8 +2077,8 @@ export default function Dashboard() {
                   <div style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)', marginBottom: 4 }}>Select Booking</div>
                   <select id="checkin-bkg" value={checkinBkgId} onChange={(e) => setCheckinBkgId(e.target.value)} style={{ padding: '10px 16px', borderRadius: 8, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)' }}>
                     <option value="">-- Select Confirmed Reservation --</option>
-                    {globalBookings.filter(b => b.status === 'CONFIRMED').map(b => (
-                      <option key={b.id} value={b.id}>{b.id} - {b.guestName} ({b.roomType})</option>
+                    {globalBookings.filter(b => (b.status === 'CONFIRMED' || b.status === 'CHECKED_IN') && (b.checkedInCount || 0) < (b.totalGuests || 1)).map(b => (
+                      <option key={b.id} value={b.id}>{b.id} - {b.guestName} ({b.roomType}) - Guests: {b.checkedInCount || 0}/{b.totalGuests || 1}</option>
                     ))}
                   </select>
 
@@ -2035,7 +2106,7 @@ export default function Dashboard() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>👥 Guest Details</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>Total Guests:</label>
+                        <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>Guests Checking In:</label>
                         <input type="number" id="checkin-total-guests" min="1" max="10" defaultValue="1" style={{ width: 60, padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)', textAlign: 'center' }}
                           onChange={(e) => {
                             const count = Math.min(10, Math.max(1, parseInt(e.target.value) || 1));
@@ -2060,6 +2131,7 @@ export default function Dashboard() {
                                   <option value="PAN">PAN</option>
                                 </select>
                                 <input type="text" class="guest-id-num" placeholder="ID Number" style="padding:8px 10px;border-radius:6px;border:1px solid var(--border-subtle);background:var(--bg-elevated);color:var(--text-main);font-size:12px" />
+                                <input type="file" class="guest-id-file" accept=".pdf,image/*" required style="grid-column:1/-1;padding:6px;border-radius:6px;border:1px solid var(--border-subtle);background:var(--bg-elevated);color:var(--text-main);font-size:11px" />
                               `;
                               container.appendChild(row);
                             }
@@ -2089,6 +2161,7 @@ export default function Dashboard() {
                           <option value="PAN">PAN</option>
                         </select>
                         <input type="text" className="guest-id-num" placeholder="ID Number" style={{ padding: '8px 10px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)', fontSize: 12 }} />
+                        <input type="file" className="guest-id-file" accept=".pdf,image/*" required style={{ gridColumn: '1 / -1', padding: '6px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)', fontSize: 11 }} />
                       </div>
                     </div>
                   </div>
@@ -2140,14 +2213,41 @@ export default function Dashboard() {
                     const guestGenders = document.querySelectorAll('.guest-gender') as NodeListOf<HTMLSelectElement>;
                     const guestIdTypes = document.querySelectorAll('.guest-id-type') as NodeListOf<HTMLSelectElement>;
                     const guestIdNums = document.querySelectorAll('.guest-id-num') as NodeListOf<HTMLInputElement>;
-                    const guestsInfo = Array.from(guestNames).map((_, i) => ({
-                      name: guestNames[i]?.value || '',
-                      gender: guestGenders[i]?.value || 'Male',
-                      idType: guestIdTypes[i]?.value || 'Aadhar',
-                      idNumber: guestIdNums[i]?.value || ''
-                    })).filter(g => g.name);
+                    const guestIdFiles = document.querySelectorAll('.guest-id-file') as NodeListOf<HTMLInputElement>;
+
+                    const guestsInfo = [];
+                    for (let i = 0; i < guestNames.length; i++) {
+                      const name = guestNames[i]?.value;
+                      if (!name) continue;
+
+                      const idFile = guestIdFiles[i]?.files?.[0];
+                      if (!idFile) {
+                        return setToast(`❌ Please upload ID proof for guest: ${name}`);
+                      }
+
+                      const fileExt = idFile.name.split('.').pop();
+                      const filePath = `${bkgId}/${name.replace(/\s+/g, '-')}-${Date.now()}.${fileExt}`;
+                      
+                      const { error: uploadError } = await supabase.storage.from('id-proofs').upload(filePath, idFile);
+                      if (uploadError) return setToast(`❌ Failed to upload ID proof for ${name}: ${uploadError.message}`);
+                      
+                      const { data: publicUrlData } = supabase.storage.from('id-proofs').getPublicUrl(filePath);
+
+                      guestsInfo.push({
+                        name,
+                        gender: guestGenders[i]?.value || 'Male',
+                        idType: guestIdTypes[i]?.value || 'Aadhar',
+                        idNumber: guestIdNums[i]?.value || '',
+                        idProofUrl: publicUrlData.publicUrl
+                      });
+                    }
 
                     if (!mob) return setToast('❌ Mobile Number is required.');
+
+                    const newCheckedInCount = (booking.checkedInCount || 0) + totalGuests;
+                    if (newCheckedInCount > (booking.totalGuests || 1)) {
+                      return setToast(`❌ checkin already done or too many guests. Maximum ${booking.totalGuests || 1} allowed, already checked in ${booking.checkedInCount || 0}.`);
+                    }
 
                     // Calculate payment status
                     const totalForThisRoom = hotelSettings.gstIncluded ? booking.amount : booking.amount * (1 + (hotelSettings.gstPercent / 100));
@@ -2166,8 +2266,8 @@ export default function Dashboard() {
                         purpose: purp,
                         amount_paid: newPaid,
                         payment_status: newPayStatus,
-                        total_guests: totalGuests,
-                        guests_info: guestsInfo
+                        checked_in_count: newCheckedInCount,
+                        guests_info: [...(booking as any).guests_info || [], ...guestsInfo]
                       })
                       .eq('custom_id', bkgId)
                       .eq('hotel_id', hotelId);
@@ -2188,7 +2288,8 @@ export default function Dashboard() {
                       address: addr, 
                       purpose: purp,
                       amountPaid: newPaid,
-                      paymentStatus: newPayStatus as any
+                      paymentStatus: newPayStatus as any,
+                      checkedInCount: newCheckedInCount
                     } : b));
 
                     // Update Room

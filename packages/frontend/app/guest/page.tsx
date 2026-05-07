@@ -23,6 +23,8 @@ function GuestPortalContent() {
   const [guestName, setGuestName] = useState('');
   const [mobile, setMobile] = useState('');
   const [email, setEmail] = useState('');
+  const [totalGuests, setTotalGuests] = useState(1);
+  const [bookingRecord, setBookingRecord] = useState<any>(null);
   const [selectedCat, setSelectedCat] = useState('');
   const [checkInDate, setCheckInDate] = useState('');
   const [checkOutDate, setCheckOutDate] = useState('');
@@ -90,7 +92,9 @@ function GuestPortalContent() {
         check_out_date: checkOutDate,
         amount: cat.base_rate,
         status: 'CONFIRMED',
-        source: 'Guest Portal'
+        source: 'Guest Portal',
+        total_guests: totalGuests,
+        checked_in_count: 0
       }]).select().single();
 
       if (bError) throw bError;
@@ -133,11 +137,13 @@ function GuestPortalContent() {
 
       if (bError) throw bError;
       if (!bkg) return setError('Booking ID not found');
-      if (bkg.status !== 'CONFIRMED') return setError('Already checked in or cancelled');
+      if (bkg.status !== 'CONFIRMED' && bkg.status !== 'CHECKED_IN') return setError('Already checked in or cancelled');
+      if ((bkg.checked_in_count || 0) >= (bkg.total_guests || 1)) return setError('checkin already done');
 
       setBookingId(bkg.custom_id);
       setGuestName(bkg.guest_name);
       setMobile(bkg.mobile || '');
+      setBookingRecord(bkg);
       // Go to guest details step
       setStep(2);
       loadAvailableRooms(bkg.room_type);
@@ -163,17 +169,52 @@ function GuestPortalContent() {
     const now = new Date().toLocaleString('en-IN');
     
     // Collect guest companion details
-    const totalGuests = parseInt((document.getElementById('guest-total-count') as HTMLInputElement)?.value || '1');
+    const guestsCheckingIn = parseInt((document.getElementById('guest-total-count') as HTMLInputElement)?.value || '1');
+    const newCheckedInCount = (bookingRecord?.checked_in_count || 0) + guestsCheckingIn;
+    if (newCheckedInCount > (bookingRecord?.total_guests || 1)) {
+      setError(`Cannot check in. Maximum ${bookingRecord?.total_guests || 1} allowed, already checked in ${bookingRecord?.checked_in_count || 0}.`);
+      setIsProcessing(false);
+      return;
+    }
+
     const gNames = document.querySelectorAll('.g-name') as NodeListOf<HTMLInputElement>;
     const gGenders = document.querySelectorAll('.g-gender') as NodeListOf<HTMLSelectElement>;
     const gIdTypes = document.querySelectorAll('.g-id-type') as NodeListOf<HTMLSelectElement>;
     const gIdNums = document.querySelectorAll('.g-id-num') as NodeListOf<HTMLInputElement>;
-    const guestsInfo = Array.from(gNames).map((_, i) => ({
-      name: gNames[i]?.value || '',
-      gender: gGenders[i]?.value || 'Male',
-      idType: gIdTypes[i]?.value || 'Aadhar',
-      idNumber: gIdNums[i]?.value || ''
-    })).filter(g => g.name);
+    const gIdFiles = document.querySelectorAll('.g-id-file') as NodeListOf<HTMLInputElement>;
+
+    const guestsInfo = [];
+    for (let i = 0; i < gNames.length; i++) {
+      const name = gNames[i]?.value;
+      if (!name) continue;
+
+      const idFile = gIdFiles[i]?.files?.[0];
+      if (!idFile) {
+        setError(`Please upload ID proof for guest: ${name}`);
+        setIsProcessing(false);
+        return;
+      }
+
+      const fileExt = idFile.name.split('.').pop();
+      const filePath = `${bookingId}/${name.replace(/\s+/g, '-')}-${Date.now()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage.from('id-proofs').upload(filePath, idFile);
+      if (uploadError) {
+        setError(`Failed to upload ID proof for ${name}: ${uploadError.message}`);
+        setIsProcessing(false);
+        return;
+      }
+      
+      const { data: publicUrlData } = supabase.storage.from('id-proofs').getPublicUrl(filePath);
+
+      guestsInfo.push({
+        name,
+        gender: gGenders[i]?.value || 'Male',
+        idType: gIdTypes[i]?.value || 'Aadhar',
+        idNumber: gIdNums[i]?.value || '',
+        idProofUrl: publicUrlData.publicUrl
+      });
+    }
 
     // Save to memory IMMEDIATELY
     localStorage.setItem(`weazy_success_${hotelId}`, JSON.stringify({
@@ -191,8 +232,8 @@ function GuestPortalContent() {
         id_proof: idProof,
         address: address,
         purpose: purpose,
-        total_guests: totalGuests,
-        guests_info: guestsInfo
+        checked_in_count: newCheckedInCount,
+        guests_info: [...(bookingRecord?.guests_info || []), ...guestsInfo]
       }).eq('custom_id', bookingId).eq('hotel_id', hotelId);
 
       if (bErr) throw bErr;
@@ -279,6 +320,7 @@ function GuestPortalContent() {
                   <input type="text" placeholder="Full Name *" value={guestName} onChange={e => setGuestName(e.target.value)} />
                   <input type="tel" placeholder="Mobile Number *" value={mobile} onChange={e => setMobile(e.target.value)} />
                   <input type="email" placeholder="Email (Optional)" value={email} onChange={e => setEmail(e.target.value)} />
+                  <input type="number" placeholder="Total Number of Guests *" value={totalGuests} onChange={e => setTotalGuests(Math.max(1, parseInt(e.target.value) || 1))} min="1" />
                   <select value={selectedCat} onChange={e => setSelectedCat(e.target.value)}>
                     <option value="">Select Room Category</option>
                     {categories.map(c => <option key={c.id} value={c.name}>{c.name} - ₹{c.base_rate}</option>)}
@@ -340,7 +382,7 @@ function GuestPortalContent() {
                 </select>
               </div>
               <div>
-                <label className="field-label">Total Number of Guests *</label>
+                <label className="field-label">Guests Checking In Now *</label>
                 <input type="number" min="1" max="10" placeholder="1" id="guest-total-count" defaultValue="1" onChange={(e) => {
                   const count = Math.min(10, Math.max(1, parseInt(e.target.value) || 1));
                   const container = document.getElementById('guest-companion-rows');
@@ -364,6 +406,7 @@ function GuestPortalContent() {
                         <option value="PAN">PAN</option>
                       </select>
                       <input type="text" class="g-id-num" placeholder="ID Number" style="padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:14px;grid-column:1/-1" />
+                      <input type="file" class="g-id-file" accept=".pdf,image/*" required style="padding:10px;border-radius:8px;border:1.5px solid #e2e8f0;font-size:12px;grid-column:1/-1" />
                     `;
                     container.appendChild(row);
                   }
@@ -385,6 +428,7 @@ function GuestPortalContent() {
                     <option value="PAN">PAN</option>
                   </select>
                   <input type="text" className="g-id-num" placeholder="ID Number" style={{ padding: 10, borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 14, gridColumn: '1 / -1' }} />
+                  <input type="file" className="g-id-file" accept=".pdf,image/*" required style={{ padding: 10, borderRadius: 8, border: '1.5px solid #e2e8f0', fontSize: 12, gridColumn: '1 / -1' }} />
                 </div>
               </div>
             </div>
