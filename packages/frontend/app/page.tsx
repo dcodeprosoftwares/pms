@@ -2073,6 +2073,7 @@ export default function Dashboard() {
               )}
               {modalType === 'checkin' && (() => {
                 const checkinBkg = globalBookings.find(b => b.id === checkinBkgId);
+                const maxGuestsAllowed = checkinBkg ? Math.max(1, (checkinBkg.totalGuests || 1) - (checkinBkg.checkedInCount || 0)) : 10;
 
                 return (
                 <>
@@ -2109,9 +2110,9 @@ export default function Dashboard() {
                       <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--text-main)' }}>👥 Guest Details</div>
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                         <label style={{ fontSize: 11, fontWeight: 600, color: 'var(--text-muted)' }}>Guests Checking In:</label>
-                        <input type="number" id="checkin-total-guests" min="1" max="10" defaultValue="1" style={{ width: 60, padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)', textAlign: 'center' }}
+                        <input type="number" id="checkin-total-guests" min="1" max={maxGuestsAllowed} defaultValue="1" style={{ width: 60, padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border-subtle)', background: 'var(--bg-elevated)', color: 'var(--text-main)', textAlign: 'center' }}
                           onChange={(e) => {
-                            const count = Math.min(10, Math.max(1, parseInt(e.target.value) || 1));
+                            const count = Math.min(maxGuestsAllowed, Math.max(1, parseInt(e.target.value) || 1));
                             const container = document.getElementById('guest-rows-container');
                             if (!container) return;
                             container.innerHTML = '';

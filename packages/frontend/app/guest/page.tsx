@@ -298,6 +298,7 @@ function GuestPortalContent() {
       </div>
     );
   }
+  const maxGuestsAllowed = bookingRecord ? Math.max(1, (bookingRecord.total_guests || 1) - (bookingRecord.checked_in_count || 0)) : 10;
 
   return (
     <div className="guest-portal">
@@ -387,8 +388,8 @@ function GuestPortalContent() {
               </div>
               <div>
                 <label className="field-label">Guests Checking In Now *</label>
-                <input type="number" min="1" max="10" placeholder="1" id="guest-total-count" defaultValue="1" onChange={(e) => {
-                  const count = Math.min(10, Math.max(1, parseInt(e.target.value) || 1));
+                <input type="number" min="1" max={maxGuestsAllowed} placeholder="1" id="guest-total-count" defaultValue="1" onChange={(e) => {
+                  const count = Math.min(maxGuestsAllowed, Math.max(1, parseInt(e.target.value) || 1));
                   const container = document.getElementById('guest-companion-rows');
                   if (!container) return;
                   container.innerHTML = '';
