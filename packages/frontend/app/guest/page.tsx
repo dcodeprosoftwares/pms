@@ -81,7 +81,7 @@ function GuestPortalContent() {
     const bkgId = `GUEST-${Math.floor(Math.random() * 90000) + 10000}`;
     setIsProcessing(true);
     try {
-      const { error: bError } = await supabase.from('bookings').insert([{
+      const { data: bData, error: bError } = await supabase.from('bookings').insert([{
         hotel_id: hotelId,
         custom_id: bkgId,
         guest_name: guestName,
@@ -100,6 +100,7 @@ function GuestPortalContent() {
       if (bError) throw bError;
       
       setBookingId(bkgId);
+      setBookingRecord(bData);
       // After reservation, go to guest details step
       setStep(2);
       loadAvailableRooms(selectedCat);
